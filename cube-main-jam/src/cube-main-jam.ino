@@ -369,7 +369,7 @@ void neoPixelLoop() {
 
   switch (gameState) {
     case STATE_LOADING:
-      // do the fun loading light patterns
+      // do the fun loading light pattern
 
       // here we just light up all cube panels blue for "loading"
       lightAllPanelsWithColor(strip.Color(0, 0, 255));
@@ -408,12 +408,12 @@ void neoPixelLoop() {
     case STATE_GET_USER_INPUT:
       // give feedback when a corner is pressed
       if (didGuessThisRound == true) {
-        // light up the corner that was touched
+        // TODO: light up the corner that was touched
       }
 
       break;
     case STATE_VICTORY:
-      // show some kind of cool "you did it correctly" pattern?
+      // show some kind of cool "you did it correctly" light pattern?
 
       // here we just light up all cube panels green for success
       lightAllPanelsWithColor(strip.Color(0, 255, 0));
@@ -424,7 +424,7 @@ void neoPixelLoop() {
 
       break;
     case STATE_LOSER:
-      // wow what a jerk, our player failed
+      // wow what a jerk, our player failed show a boo light pattern
 
       // here we just light up all cube panels red for failure
       lightAllPanelsWithColor(strip.Color(255, 0, 0));
