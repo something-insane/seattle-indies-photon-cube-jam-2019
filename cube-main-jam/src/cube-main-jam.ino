@@ -99,6 +99,12 @@ void resetTheGlowyValues() {
   rate = 2;
 }
 
+void nextLevel() {
+  level += 1;
+
+  initCurrentLevel();
+}
+
 void changeGameState(int newState) {
   // here we can do some cleanup / setup depending on the state we are about to enter
   switch (newState) {
@@ -128,8 +134,9 @@ void changeGameState(int newState) {
 }
 
 void initCurrentLevel() {
-  didGuessThisRound = false;
+  changeGameState(STATE_LOADING);
   patternCount = 0;
+  numberOfGuesses = 0;
 
   int panels[] = { PANEL_ONE, PANEL_TWO, PANEL_THREE, PANEL_FOUR, PANEL_FIVE, PANEL_SIX };
 
@@ -143,17 +150,15 @@ void initCurrentLevel() {
   }
 
   currentCorrectPin = pattern[0];
-
-  changeGameState(STATE_SHOW_PATTERN);
 }
 
 void initCube() {
   changeGameState(STATE_LOADING);
-  level = 1;
+  level = 0;
   delayBetweenColors = 50;
   rndDelayRange = 1;
-  patternCount = 0;
-  numberOfGuesses = 0;
+
+  nextLevel();
 }
 
 /**
@@ -369,6 +374,10 @@ void neoPixelLoop() {
       // here we just light up all cube panels blue for "loading"
       lightAllPanelsWithColor(strip.Color(0, 0, 255));
 
+      delay(4000);
+
+      changeGameState(STATE_SHOW_PATTERN);
+
       break;
     case STATE_SHOW_PATTERN:
       {
@@ -409,12 +418,20 @@ void neoPixelLoop() {
       // here we just light up all cube panels green for success
       lightAllPanelsWithColor(strip.Color(0, 255, 0));
 
+      delay(4000);
+
+      nextLevel();
+
       break;
     case STATE_LOSER:
       // wow what a jerk, our player failed
 
       // here we just light up all cube panels red for failure
       lightAllPanelsWithColor(strip.Color(255, 0, 0));
+
+      delay(4000);
+
+      initCube();
 
       break;
   }
@@ -423,19 +440,23 @@ void neoPixelLoop() {
 void handleTouchedPin(int pinNumber) {
   didGuessThisRound = true;
 
-  if (pinNumber == currentCorrectPin) {
-    numberOfGuesses += 1;
+  // TODO: Remove always assuming correct sensor/corner was touched
+  changeGameState(STATE_VICTORY);
 
-    if (numberOfGuesses == level) {
-      changeGameState(STATE_VICTORY);
+  // check if corrent Pin was guessed
+  // if (pinNumber == currentCorrectPin) {
+  //   numberOfGuesses += 1;
 
-      return;
-    }
+  //   if (numberOfGuesses == level) {
+  //     changeGameState(STATE_VICTORY);
 
-    currentCorrectPin = pattern[numberOfGuesses - 1];
+  //     return;
+  //   }
 
-    return;
-  }
+  //   currentCorrectPin = pattern[numberOfGuesses - 1];
+
+  //   return;
+  // }
 
   // if we get here the incorrect pin number was pressed
   changeGameState(STATE_LOSER);
