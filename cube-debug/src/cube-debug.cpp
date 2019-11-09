@@ -2,25 +2,32 @@
 //       THIS IS A GENERATED FILE - DO NOT EDIT       //
 /******************************************************/
 
-#line 1 "c:/Users/me/Dropbox/2019-games/particle/cube-debug/src/cube-debug.ino"
+#line 1 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
 #include "Adafruit_GFX.h"
 #include "Adafruit_SSD1306.h"
 #include "Particle.h"
 #include "Adafruit_MPR121.h"
 #include "neopixel.h"
 
+// #define TEST_DISPLAY
+// #define TEST_TOUCH
 void displaySetup();
 void touchSetup();
 void neoPixelSetup();
+void beeperSetup();
+void buzzerSetup();
 void setup();
 void printStatus(uint16_t currtouched);
 void printBaselineData(uint16_t currtouched);
 void printFilteredData(uint16_t currtouched);
 void loop();
-#line 7 "c:/Users/me/Dropbox/2019-games/particle/cube-debug/src/cube-debug.ino"
-#define TEST_DISPLAY
-#define TEST_TOUCH
+#line 9 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
 #define TEST_NEOPIXEL
+#define TEST_BUZZER
+#define TEST_BEEPER
+
+#define BEEPER_PIN TX
+#define BUZZER_PIN WKP
 
 SYSTEM_MODE(MANUAL);
 
@@ -87,7 +94,7 @@ void touchSetup() {
 
 // IMPORTANT: Set pixel COUNT, PIN and TYPE
 #define PIXEL_PIN D2
-#define PIXEL_COUNT 60
+#define PIXEL_COUNT 3
 #define PIXEL_TYPE WS2812B
 #define BRIGHTNESS 255 // 0 - 255
 
@@ -118,6 +125,18 @@ void neoPixelSetup() {
 }
 #endif
 
+#ifdef TEST_BEEPER
+void beeperSetup() {
+  pinMode(BEEPER_PIN, OUTPUT);
+}
+#endif
+
+#ifdef TEST_BUZZER
+void buzzerSetup() {
+  pinMode(BUZZER_PIN, OUTPUT);
+}
+#endif
+
 void setup() {
   Serial.begin(9600);
   delay(1000);
@@ -140,6 +159,14 @@ void setup() {
 
   #ifdef TEST_NEOPIXEL
   neoPixelSetup();
+  #endif
+
+  #ifdef TEST_BEEPER
+  beeperSetup();
+  #endif
+
+  #ifdef TEST_BUZZER
+  buzzerSetup();
   #endif
 }
 
@@ -192,10 +219,11 @@ int value = 0;
 int rate = 2;
 
 void loop() {
-
+  #ifdef TEST_TOUCH
   // cap.setThresholds(touch_threshold, release_threshold);
   // Get the currently touched pads
   currtouched = cap.touched();
+  #endif
 
   if (goingUp) {
     value += rate;
@@ -210,6 +238,18 @@ void loop() {
       goingUp = true;
     }
   }
+  
+  #ifdef TEST_BEEPER
+  tone(BEEPER_PIN, (double)value / 255.0 * 5000, 0);
+  // pinMode(TX, OUTPUT);
+  // noTone(TX);
+  #endif
+  
+  #ifdef TEST_BUZZER
+  tone(BUZZER_PIN, (double)value / 255.0 * 5000, 0);
+  // pinMode(TX, OUTPUT);
+  // noTone(TX);
+  #endif
 
   #ifdef TEST_NEOPIXEL
   
@@ -227,6 +267,8 @@ void loop() {
   strip.show();
   #endif
 
+  #ifdef TEST_DISPLAY
+  #ifdef TEST_TOUCH
   if (millis() > nextTime) {
     display.clearDisplay();
     display.setTextSize(1);
@@ -238,6 +280,7 @@ void loop() {
     nextTime = millis() + 100;
     display.display();
   }
+  
 
   for (uint8_t i=0; i<12; i++) {
     // it if *is* touched and *wasnt* touched before, alert!
@@ -268,7 +311,9 @@ void loop() {
     Serial.print(cap.baselineData(i)); Serial.print("\t");
   }
   Serial.println();
+  #endif
+  #endif
 
   // put a delay so it isn't overwhelming
-  delay(100);
+  delay(50);
 }
