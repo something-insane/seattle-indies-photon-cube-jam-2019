@@ -4,11 +4,11 @@
 #include "Adafruit_MPR121.h"
 #include "neopixel.h"
 
-// #define TEST_DISPLAY
-// #define TEST_TOUCH
+#define TEST_DISPLAY
+#define TEST_TOUCH
 #define TEST_NEOPIXEL
 #define TEST_BUZZER
-#define TEST_BEEPERx
+// #define TEST_BEEPER
 
 #define BEEPER_PIN TX
 #define BUZZER_PIN WKP
@@ -16,7 +16,7 @@
 SYSTEM_MODE(MANUAL);
 
 #define CHARGING_PIN D7
-#define MOVEMENT_PIN D6
+#define CHARGED_PIN D6
 
 #define PIXEL_PIN D2
 #define SCL D1
@@ -78,7 +78,7 @@ void touchSetup() {
 
 // IMPORTANT: Set pixel COUNT, PIN and TYPE
 #define PIXEL_PIN D2
-#define PIXEL_COUNT 3
+#define PIXEL_COUNT 24
 #define PIXEL_TYPE WS2812B
 #define BRIGHTNESS 255 // 0 - 255
 
@@ -203,6 +203,7 @@ int value = 0;
 int rate = 2;
 
 void loop() {
+
   #ifdef TEST_TOUCH
   // cap.setThresholds(touch_threshold, release_threshold);
   // Get the currently touched pads
