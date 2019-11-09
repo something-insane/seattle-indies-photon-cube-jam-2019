@@ -82,9 +82,50 @@ int currentCorrectPin;
 // represents the guess number the user is currently on (each level has a number of guesses equal to the level number).
 int numberOfGuesses;
 
+// represents whether the user has just made a guess so we can give visual feedback and check for correct or incorrect
 bool didGuessThisRound;
 
-char gameState;
+int gameState;
+
+bool goingUp = true;
+
+int glowyValue = 0;
+
+int rate = 2;
+
+void resetTheGlowyValues() {
+  goingUp = true;
+  glowyValue = 0;
+  rate = 2;
+}
+
+void changeGameState(int newState) {
+  // here we can do some cleanup / setup depending on the state we are about to enter
+  switch (newState) {
+    case STATE_LOADING:
+      resetTheGlowyValues();
+
+      break;
+    case STATE_SHOW_PATTERN:
+      // do nothing
+
+      break;
+    case STATE_GET_USER_INPUT:
+      didGuessThisRound = false;
+
+      break;
+    case STATE_VICTORY:
+      resetTheGlowyValues();
+
+      break;
+    case STATE_LOSER:
+      resetTheGlowyValues();
+
+      break;
+  }
+
+  gameState = newState;
+}
 
 void initCurrentLevel() {
   didGuessThisRound = false;
@@ -103,11 +144,11 @@ void initCurrentLevel() {
 
   currentCorrectPin = pattern[0];
 
-  gameState = STATE_SHOW_PATTERN;
+  changeGameState(STATE_SHOW_PATTERN);
 }
 
 void initCube() {
-  gameState = STATE_LOADING;
+  changeGameState(STATE_LOADING);
   level = 1;
   delayBetweenColors = 50;
   rndDelayRange = 1;
@@ -318,10 +359,6 @@ void setup() {
 // }
 // #endif
 
-bool goingUp = true;
-int value = 0;
-int rate = 2;
-
 void neoPixelLoop() {
   // strip.setPixelColor(pixel_number, strip.Color(R, G, B));
 
@@ -353,7 +390,7 @@ void neoPixelLoop() {
         strip.show();
         patternCount += 1;
 
-        gameState = STATE_GET_USER_INPUT;
+        changeGameState(STATE_GET_USER_INPUT);
       }
       break;
     case STATE_GET_USER_INPUT:
@@ -386,7 +423,7 @@ void handleTouchedPin(int pinNumber) {
     numberOfGuesses += 1;
 
     if (numberOfGuesses == level) {
-      gameState = STATE_VICTORY;
+      changeGameState(STATE_VICTORY);
 
       return;
     }
@@ -397,7 +434,7 @@ void handleTouchedPin(int pinNumber) {
   }
 
   // if we get here the incorrect pin number was pressed
-  gameState = STATE_LOSER;
+  changeGameState(STATE_LOSER);
 }
 
 void handleReleasedPin(int pinNumber) {
@@ -459,34 +496,62 @@ void touchSensorsLoop() {
   }
 }
 
-void loop() {
+void incrementTheGlowyValues() {
+  if (goingUp) {
+    glowyValue += rate;
 
+    if (glowyValue > 255) {
+      glowyValue = 255;
+
+      goingUp = false;
+    }
+  } else {
+    glowyValue -= rate;
+
+    if (glowyValue < 0) {
+      glowyValue = 0;
+
+      goingUp = true;
+    }
+  }
+}
+
+void loop() {
   #ifdef TEST_TOUCH
     touchSensorsLoop();
   #endif
 
-  // if (goingUp) {
-  //   value += rate;
-  //   if (value > 255) {
-  //     value = 255;
-  //     goingUp = false;
-  //   }
-  // } else {
-  //   value -= rate;
-  //   if (value < 0) {
-  //     value = 0;
-  //     goingUp = true;
-  //   }
-  // }
+  switch (gameState) {
+    case STATE_LOADING:
+      incrementTheGlowyValues();
+
+      break;
+    case STATE_SHOW_PATTERN:
+      // do nothing
+
+      break;
+    case STATE_GET_USER_INPUT:
+      // do nothing
+
+      break;
+    case STATE_VICTORY:
+      incrementTheGlowyValues();
+
+      break;
+    case STATE_LOSER:
+      incrementTheGlowyValues();
+
+      break;
+  }
 
   #ifdef TEST_BEEPER
-  tone(BEEPER_PIN, (double)value / 255.0 * 5000, 0);
+  tone(BEEPER_PIN, static_cast<double>(glowyValue) / 255.0 * 5000, 0);
   // pinMode(TX, OUTPUT);
   // noTone(TX);
   #endif
 
   #ifdef TEST_BUZZER
-  tone(BUZZER_PIN, (double)value / 255.0 * 5000, 0);
+  tone(BUZZER_PIN, static_cast<double>(glowyValue) / 255.0 * 5000, 0);
   // pinMode(TX, OUTPUT);
   // noTone(TX);
   #endif
