@@ -34,12 +34,12 @@ SYSTEM_MODE(MANUAL);
 #define PANEL_ONE_BOTTOM_PIXEL    16
 #define PANEL_ONE_LEFT_PIXEL      21
 #define PANEL_TWO_TOP_PIXEL       12
-#define PANEL_TWO_RIGHT_PIXEL     7
-#define PANEL_TWO_BOTTOM_PIXEL    6
-#define PANEL_TWO_LEFT_PIXEL      1
+#define PANEL_TWO_RIGHT_PIXEL      7
+#define PANEL_TWO_BOTTOM_PIXEL     6
+#define PANEL_TWO_LEFT_PIXEL       1
 #define PANEL_THREE_TOP_PIXEL     22
 #define PANEL_THREE_RIGHT_PIXEL   11
-#define PANEL_THREE_BOTTOM_PIXEL  5
+#define PANEL_THREE_BOTTOM_PIXEL   5
 #define PANEL_THREE_LEFT_PIXEL    23
 #define PANEL_FOUR_TOP_PIXEL      17
 #define PANEL_FOUR_RIGHT_PIXEL    10
@@ -47,33 +47,61 @@ SYSTEM_MODE(MANUAL);
 #define PANEL_FOUR_LEFT_PIXEL     14
 #define PANEL_FIVE_TOP_PIXEL      19
 #define PANEL_FIVE_RIGHT_PIXEL    24
-#define PANEL_FIVE_BOTTOM_PIXEL   8
-#define PANEL_FIVE_LEFT_PIXEL     9
+#define PANEL_FIVE_BOTTOM_PIXEL    8
+#define PANEL_FIVE_LEFT_PIXEL      9
 #define PANEL_SIX_TOP_PIXEL       15
 #define PANEL_SIX_RIGHT_PIXEL     13
-#define PANEL_SIX_BOTTOM_PIXEL    0
-#define PANEL_SIX_LEFT_PIXEL      3
+#define PANEL_SIX_BOTTOM_PIXEL     0
+#define PANEL_SIX_LEFT_PIXEL       3
 
-#define STATE_LOADING         0
-#define STATE_SHOW_PATTERN    1
-#define STATE_GET_USER_INPUT  2
-#define STATE_VICTORY         3
+#define STATE_LOADING              0
+#define STATE_SHOW_PATTERN         1
+#define STATE_GET_USER_INPUT       2
+#define STATE_VICTORY              3
+#define STATE_LOSER                4
+#define STATE_USER_WAS_CORRECT     5
 
 // current "level" or the number of panels that will light up for current "level"
 int level;
+
 // delay between showing the panels lighting up
 int delayBetweenColors;
+
 // potential randomness that messes with the delay being longer or shorter
 int rndDelayRange;
+
+// pattern to display to user per level each item representing a panel to light up
 int pattern[10];
+
+// represents which element in the pattern[] we are on and want to display next
+int patternCount;
+
+// represents the touch pin that represents the current correct corner to touch during gameplay
+int currentCorrectPin;
+
+// represents the guess number the user is currently on (each level has a number of guesses equal to the level number).
+int numberOfGuesses;
+
+bool didGuessThisRound;
 
 char gameState;
 
 void initCurrentLevel() {
-  pattern[0] = PANEL_ONE;
-  pattern[1] = PANEL_FOUR;
-  pattern[2] = PANEL_THREE;
-  pattern[3] = PANEL_TWO;
+  didGuessThisRound = false;
+  patternCount = 0;
+
+  int panels[] = { PANEL_ONE, PANEL_TWO, PANEL_THREE, PANEL_FOUR, PANEL_FIVE, PANEL_SIX };
+
+  size_t panelSize = sizeof(panels) / sizeof(int);
+  int count = static_cast<int>(panelSize);
+
+  for (int i = 0; i < count; i += 1) {
+    int rndIndex = PANEL_ONE + (rand() % static_cast<int>(PANEL_SIX - PANEL_ONE + 1));
+
+    pattern[i] = panels[rndIndex];
+  }
+
+  currentCorrectPin = pattern[0];
 
   gameState = STATE_SHOW_PATTERN;
 }
@@ -83,6 +111,8 @@ void initCube() {
   level = 1;
   delayBetweenColors = 50;
   rndDelayRange = 1;
+  patternCount = 0;
+  numberOfGuesses = 0;
 }
 
 /**
@@ -178,6 +208,16 @@ void neoPixelSetup() {
   strip.setBrightness(BRIGHTNESS);
   strip.begin();
   strip.show();
+}
+
+void lightAllPanelsWithColor(uint32_t panelColor) {
+  // 6 is the number of panels
+  for (int i = 0; i < 6; i += 1) {
+    // 4 is the number of lights per panel
+    for (int j = 0; j < 4; j += 1) {
+      strip.setPixelColor(cubePanelLights[i][j], panelColor);
+    }
+  }
 }
 
 #endif
@@ -291,24 +331,73 @@ void neoPixelLoop() {
 
       break;
     case STATE_SHOW_PATTERN:
-      // display the current levels pattern on the cube to user
+      {
+        // display the current levels pattern on the cube to user
+        int currentPanel = pattern[patternCount];
 
+        // TURN PANEL ON
+        // 4 is the number of lights per panel
+        for (int i = 0; i < 4; i += 1) {
+          strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(255, 255, 255));
+        }
+
+        strip.show();
+
+        delay(2000);
+
+        // TURN PANEL OFF
+        for (int i = 0; i < 4; i += 1) {
+          strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(0, 0, 0));
+        }
+
+        strip.show();
+        patternCount += 1;
+
+        gameState = STATE_GET_USER_INPUT;
+      }
       break;
     case STATE_GET_USER_INPUT:
       // give feedback when a corner is pressed
+      if (didGuessThisRound == true) {
+        // light up the corner that was touched
+      }
 
       break;
     case STATE_VICTORY:
       // show some kind of cool "you did it correctly" pattern?
 
+      // here we just light up all cube panels green for success
+      lightAllPanelsWithColor(strip.Color(0, 255, 0));
+
+      break;
+    case STATE_LOSER:
+      // wow what a jerk, our player failed
+
+      // here we just light up all cube panels red for failure
+      lightAllPanelsWithColor(strip.Color(255, 0, 0));
       break;
   }
-
-  strip.show();
 }
 
 void handleTouchedPin(int pinNumber) {
-  //
+  didGuessThisRound = true;
+
+  if (pinNumber == currentCorrectPin) {
+    numberOfGuesses += 1;
+
+    if (numberOfGuesses == level) {
+      gameState = STATE_VICTORY;
+
+      return;
+    }
+
+    currentCorrectPin = pattern[numberOfGuesses - 1];
+
+    return;
+  }
+
+  // if we get here the incorrect pin number was pressed
+  gameState = STATE_LOSER;
 }
 
 void handleReleasedPin(int pinNumber) {

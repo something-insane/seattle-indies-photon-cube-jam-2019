@@ -9,15 +9,19 @@
 #include "Adafruit_MPR121.h"
 #include "neopixel.h"
 
+void initCurrentLevel();
+void initCube();
 void displaySetup();
 void touchSetup();
 void neoPixelSetup();
+void lightAllPanelsWithColor(uint32_t panelColor);
 void beeperSetup();
 void buzzerSetup();
 void setup();
-void printStatus(uint16_t currtouched);
-void printBaselineData(uint16_t currtouched);
-void printFilteredData(uint16_t currtouched);
+void neoPixelLoop();
+void handleTouchedPin(int pinNumber);
+void handleReleasedPin(int pinNumber);
+void touchSensorsLoop();
 void loop();
 #line 7 "/Users/matthewmccord/Workspace/photon_iot/seattle-indies-photon-cube-jam-2019/cube-main-jam/src/cube-main-jam.ino"
 #define TEST_DISPLAY
@@ -38,17 +42,24 @@ SYSTEM_MODE(MANUAL);
 #define SCL D1
 #define SDA D0
 
+#define PANEL_ONE   0
+#define PANEL_TWO   1
+#define PANEL_THREE 2
+#define PANEL_FOUR  3
+#define PANEL_FIVE  4
+#define PANEL_SIX   5
+
 #define PANEL_ONE_TOP_PIXEL       20
 #define PANEL_ONE_RIGHT_PIXEL     18
 #define PANEL_ONE_BOTTOM_PIXEL    16
 #define PANEL_ONE_LEFT_PIXEL      21
 #define PANEL_TWO_TOP_PIXEL       12
-#define PANEL_TWO_RIGHT_PIXEL     7
-#define PANEL_TWO_BOTTOM_PIXEL    6
-#define PANEL_TWO_LEFT_PIXEL      1
+#define PANEL_TWO_RIGHT_PIXEL      7
+#define PANEL_TWO_BOTTOM_PIXEL     6
+#define PANEL_TWO_LEFT_PIXEL       1
 #define PANEL_THREE_TOP_PIXEL     22
 #define PANEL_THREE_RIGHT_PIXEL   11
-#define PANEL_THREE_BOTTOM_PIXEL  5
+#define PANEL_THREE_BOTTOM_PIXEL   5
 #define PANEL_THREE_LEFT_PIXEL    23
 #define PANEL_FOUR_TOP_PIXEL      17
 #define PANEL_FOUR_RIGHT_PIXEL    10
@@ -56,12 +67,73 @@ SYSTEM_MODE(MANUAL);
 #define PANEL_FOUR_LEFT_PIXEL     14
 #define PANEL_FIVE_TOP_PIXEL      19
 #define PANEL_FIVE_RIGHT_PIXEL    24
-#define PANEL_FIVE_BOTTOM_PIXEL   8
-#define PANEL_FIVE_LEFT_PIXEL     9
+#define PANEL_FIVE_BOTTOM_PIXEL    8
+#define PANEL_FIVE_LEFT_PIXEL      9
 #define PANEL_SIX_TOP_PIXEL       15
 #define PANEL_SIX_RIGHT_PIXEL     13
-#define PANEL_SIX_BOTTOM_PIXEL    0
-#define PANEL_SIX_LEFT_PIXEL      3
+#define PANEL_SIX_BOTTOM_PIXEL     0
+#define PANEL_SIX_LEFT_PIXEL       3
+
+#define STATE_LOADING              0
+#define STATE_SHOW_PATTERN         1
+#define STATE_GET_USER_INPUT       2
+#define STATE_VICTORY              3
+#define STATE_LOSER                4
+#define STATE_USER_WAS_CORRECT     5
+
+// current "level" or the number of panels that will light up for current "level"
+int level;
+
+// delay between showing the panels lighting up
+int delayBetweenColors;
+
+// potential randomness that messes with the delay being longer or shorter
+int rndDelayRange;
+
+// pattern to display to user per level each item representing a panel to light up
+int pattern[10];
+
+// represents which element in the pattern[] we are on and want to display next
+int patternCount;
+
+// represents the touch pin that represents the current correct corner to touch during gameplay
+int currentCorrectPin;
+
+// represents the guess number the user is currently on (each level has a number of guesses equal to the level number).
+int numberOfGuesses;
+
+bool didGuessThisRound;
+
+char gameState;
+
+void initCurrentLevel() {
+  didGuessThisRound = false;
+  patternCount = 0;
+
+  int panels[] = { PANEL_ONE, PANEL_TWO, PANEL_THREE, PANEL_FOUR, PANEL_FIVE, PANEL_SIX };
+
+  size_t panelSize = sizeof(panels) / sizeof(int);
+  int count = static_cast<int>(panelSize);
+
+  for (int i = 0; i < count; i += 1) {
+    int rndIndex = PANEL_ONE + (rand() % static_cast<int>(PANEL_SIX - PANEL_ONE + 1));
+
+    pattern[i] = panels[rndIndex];
+  }
+
+  currentCorrectPin = pattern[0];
+
+  gameState = STATE_SHOW_PATTERN;
+}
+
+void initCube() {
+  gameState = STATE_LOADING;
+  level = 1;
+  delayBetweenColors = 50;
+  rndDelayRange = 1;
+  patternCount = 0;
+  numberOfGuesses = 0;
+}
 
 /**
  * Display
@@ -123,8 +195,6 @@ void touchSetup() {
 #define PIXEL_TYPE WS2812B
 #define BRIGHTNESS 255 // 0 - 255
 
-int currentPanel = 0;
-
 int cubePanelLights[6][4] = {
   {PANEL_ONE_TOP_PIXEL, PANEL_ONE_RIGHT_PIXEL, PANEL_ONE_BOTTOM_PIXEL, PANEL_ONE_LEFT_PIXEL},
   {PANEL_TWO_TOP_PIXEL, PANEL_TWO_RIGHT_PIXEL, PANEL_TWO_BOTTOM_PIXEL, PANEL_TWO_LEFT_PIXEL},
@@ -159,6 +229,17 @@ void neoPixelSetup() {
   strip.begin();
   strip.show();
 }
+
+void lightAllPanelsWithColor(uint32_t panelColor) {
+  // 6 is the number of panels
+  for (int i = 0; i < 6; i += 1) {
+    // 4 is the number of lights per panel
+    for (int j = 0; j < 4; j += 1) {
+      strip.setPixelColor(cubePanelLights[i][j], panelColor);
+    }
+  }
+}
+
 #endif
 
 #ifdef TEST_BEEPER
@@ -174,19 +255,19 @@ void buzzerSetup() {
 #endif
 
 void setup() {
-  Serial.begin(9600);
-  delay(1000);
-  Serial.println("External Hardware Test");
-  delay(1000);
-  Serial.println("External Hardware Test");
-  delay(1000);
-  Serial.println("External Hardware Test");
-  delay(1000);
-  Serial.println("External Hardware Test");
-  delay(1000);
-  Serial.println("External Hardware Test");
+  // Serial.begin(9600);
+  // delay(1000);
+  // Serial.println("External Hardware Test");
+  // delay(1000);
+  // Serial.println("External Hardware Test");
+  // delay(1000);
+  // Serial.println("External Hardware Test");
+  // delay(1000);
+  // Serial.println("External Hardware Test");
+  // delay(1000);
+  // Serial.println("External Hardware Test");
   #ifdef TEST_DISPLAY
-  displaySetup();
+  // displaySetup();
   #endif
 
   #ifdef TEST_TOUCH
@@ -204,77 +285,219 @@ void setup() {
   #ifdef TEST_BUZZER
   buzzerSetup();
   #endif
-}
 
-#ifdef TEST_DISPLAY
-#ifdef TEST_TOUCH
-unsigned long nextTime = 0;
-void printStatus(uint16_t currtouched) {
-  int textSize = 5 + 1 + 5 + 1 + 5;
-  int gapSize = (128 - (textSize * 6)) / 5;
-  for (int i = 0; i < 6; i++) {
-    display.setCursor((i * (gapSize+textSize)), 0);
-    display.print(currtouched & (1 << i) ? "***" : " - ");
-  }
-  for (int i = 0; i < 6; i++) {
-    display.setCursor((i * (gapSize+textSize)), 32);
-    display.print(currtouched & (1 << (i + 6)) ? "***" : " - ");
-  }
-}
+  initCube();
+}// THIS NEEDS DISPLAY
 
-void printBaselineData(uint16_t currtouched) {
-  int textSize = 5 + 1 + 5 + 1 + 5;
-  int gapSize = (128 - (textSize * 6)) / 5;
-  for (int i = 0; i < 6; i++) {
-    display.setCursor(i * (gapSize+textSize), 0 + 8);
-    display.print(cap.baselineData(i));
-  }
-  for (int i = 0; i < 6; i++) {
-    display.setCursor(i * (gapSize+textSize), 32 + 8);
-    display.print(cap.baselineData(i + 6));
-  }
-}
 
-void printFilteredData(uint16_t currtouched) {
-  int textSize = 5 + 1 + 5 + 1 + 5;
-  int gapSize = (128 - (textSize * 6)) / 5;
-  for (int i = 0; i < 6; i++) {
-    display.setCursor(i * (gapSize+textSize), 0 + 8 + 10);
-    display.print(cap.filteredData(i));
-  }
-  for (int i = 0; i < 6; i++) {
-    display.setCursor(i * (gapSize+textSize), 32 + 8 + 10);
-    display.print(cap.filteredData(i + 6));
-  }
-}
-#endif
-#endif
+// #ifdef TEST_TOUCH
+// #endif
+
+// #ifdef TEST_DISPLAY
+// THIS NEEDS DISPLAY
+// unsigned long nextTime = 0;
+// void printStatus(uint16_t currtouched) {
+//   int textSize = 5 + 1 + 5 + 1 + 5;
+//   int gapSize = (128 - (textSize * 6)) / 5;
+//   for (int i = 0; i < 6; i++) {
+//     display.setCursor((i * (gapSize+textSize)), 0);
+//     display.print(currtouched & (1 << i) ? "***" : " - ");
+//   }
+//   for (int i = 0; i < 6; i++) {
+//     display.setCursor((i * (gapSize+textSize)), 32);
+//     display.print(currtouched & (1 << (i + 6)) ? "***" : " - ");
+//   }
+// }
+
+// THIS NEEDS DISPLAY
+// void printBaselineData(uint16_t currtouched) {
+//   int textSize = 5 + 1 + 5 + 1 + 5;
+//   int gapSize = (128 - (textSize * 6)) / 5;
+//   for (int i = 0; i < 6; i++) {
+//     display.setCursor(i * (gapSize+textSize), 0 + 8);
+//     display.print(cap.baselineData(i));
+//   }
+//   for (int i = 0; i < 6; i++) {
+//     display.setCursor(i * (gapSize+textSize), 32 + 8);
+//     display.print(cap.baselineData(i + 6));
+//   }
+// }
+
+// THIS NEEDS DISPLAY
+// void printFilteredData(uint16_t currtouched) {
+//   int textSize = 5 + 1 + 5 + 1 + 5;
+//   int gapSize = (128 - (textSize * 6)) / 5;
+//   for (int i = 0; i < 6; i++) {
+//     display.setCursor(i * (gapSize+textSize), 0 + 8 + 10);
+//     display.print(cap.filteredData(i));
+//   }
+//   for (int i = 0; i < 6; i++) {
+//     display.setCursor(i * (gapSize+textSize), 32 + 8 + 10);
+//     display.print(cap.filteredData(i + 6));
+//   }
+// }
+// #endif
 
 bool goingUp = true;
 int value = 0;
 int rate = 2;
 
+void neoPixelLoop() {
+  // strip.setPixelColor(pixel_number, strip.Color(R, G, B));
+
+  switch (gameState) {
+    case STATE_LOADING:
+      // do the fun loading light patterns
+
+      break;
+    case STATE_SHOW_PATTERN:
+      {
+        // display the current levels pattern on the cube to user
+        int currentPanel = pattern[patternCount];
+
+        // TURN PANEL ON
+        // 4 is the number of lights per panel
+        for (int i = 0; i < 4; i += 1) {
+          strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(255, 255, 255));
+        }
+
+        strip.show();
+
+        delay(2000);
+
+        // TURN PANEL OFF
+        for (int i = 0; i < 4; i += 1) {
+          strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(0, 0, 0));
+        }
+
+        strip.show();
+        patternCount += 1;
+
+        gameState = STATE_GET_USER_INPUT;
+      }
+      break;
+    case STATE_GET_USER_INPUT:
+      // give feedback when a corner is pressed
+      if (didGuessThisRound == true) {
+        // light up the corner that was touched
+      }
+
+      break;
+    case STATE_VICTORY:
+      // show some kind of cool "you did it correctly" pattern?
+
+      // here we just light up all cube panels green for success
+      lightAllPanelsWithColor(strip.Color(0, 255, 0));
+
+      break;
+    case STATE_LOSER:
+      // wow what a jerk, our player failed
+
+      // here we just light up all cube panels red for failure
+      lightAllPanelsWithColor(strip.Color(255, 0, 0));
+      break;
+  }
+}
+
+void handleTouchedPin(int pinNumber) {
+  didGuessThisRound = true;
+
+  if (pinNumber == currentCorrectPin) {
+    numberOfGuesses += 1;
+
+    if (numberOfGuesses == level) {
+      gameState = STATE_VICTORY;
+
+      return;
+    }
+
+    currentCorrectPin = pattern[numberOfGuesses - 1];
+
+    return;
+  }
+
+  // if we get here the incorrect pin number was pressed
+  gameState = STATE_LOSER;
+}
+
+void handleReleasedPin(int pinNumber) {
+  //
+}
+
+void touchSensorsLoop() {
+  switch (gameState) {
+    case STATE_LOADING:
+      // do nothing
+
+      break;
+    case STATE_SHOW_PATTERN:
+      // do nothing
+
+      break;
+    case STATE_GET_USER_INPUT:
+      // get user input when touch sensors pressed and check for correct pattern input from user.
+      for (uint8_t i=0; i<12; i++) {
+        // it if *is* touched and *wasnt* touched before, alert!
+        if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
+          Serial.print(i); Serial.println(" touched");
+
+          handleTouchedPin(i);
+        }
+
+      // if it *was* touched and now *isnt*, alert!
+        if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
+          Serial.print(i); Serial.println(" released");
+
+          handleReleasedPin(i);
+        }
+      }
+
+      // reset our state
+      lasttouched = currtouched;
+
+      // comment out this line for detailed data from the sensor!
+      return;
+
+      // debugging info, what
+      Serial.print("\t\t\t\t\t\t\t\t\t\t\t\t\t 0x"); Serial.println(cap.touched(), HEX);
+      Serial.print("Filt: ");
+      for (uint8_t i=0; i<12; i++) {
+        Serial.print(cap.filteredData(i)); Serial.print("\t");
+      }
+      Serial.println();
+      Serial.print("Base: ");
+      for (uint8_t i=0; i<12; i++) {
+        Serial.print(cap.baselineData(i)); Serial.print("\t");
+      }
+      Serial.println();
+
+      break;
+    case STATE_VICTORY:
+      // do nothing
+
+      break;
+  }
+}
+
 void loop() {
 
   #ifdef TEST_TOUCH
-  // cap.setThresholds(touch_threshold, release_threshold);
-  // Get the currently touched pads
-  currtouched = cap.touched();
+    touchSensorsLoop();
   #endif
 
-  if (goingUp) {
-    value += rate;
-    if (value > 255) {
-      value = 255;
-      goingUp = false;
-    }
-  } else {
-    value -= rate;
-    if (value < 0) {
-      value = 0;
-      goingUp = true;
-    }
-  }
+  // if (goingUp) {
+  //   value += rate;
+  //   if (value > 255) {
+  //     value = 255;
+  //     goingUp = false;
+  //   }
+  // } else {
+  //   value -= rate;
+  //   if (value < 0) {
+  //     value = 0;
+  //     goingUp = true;
+  //   }
+  // }
 
   #ifdef TEST_BEEPER
   tone(BEEPER_PIN, (double)value / 255.0 * 5000, 0);
@@ -289,37 +512,11 @@ void loop() {
   #endif
 
   #ifdef TEST_NEOPIXEL
-
-  // strip.setPixelColor(0, strip.Color(value, 00000, 00000));
-  // strip.setPixelColor(1, strip.Color(00000, value, 00000));
-  // strip.setPixelColor(2, strip.Color(00000, 00000, value));
-  // for (int i = 3; i < PIXEL_COUNT - 3; i++)
-  //   strip.setPixelColor(i, strip.Color(value, value, value));
-  // if (PIXEL_COUNT > 6) {
-
-  //   strip.setPixelColor(PIXEL_COUNT - 1, strip.Color(value, 00000, 00000));
-  //   strip.setPixelColor(PIXEL_COUNT - 2, strip.Color(00000, value, 00000));
-  //   strip.setPixelColor(PIXEL_COUNT - 3, strip.Color(00000, 00000, value));
-  // }
-
-  // strip.setPixelColor(cubePanelLights[currentPanel][0], strip.Color(value, 00000, value));
-
-  if (currentPanel > 0) {
-    strip.setPixelColor(cubePanelLights[currentPanel - 1][0], strip.Color(00000, 00000, 00000));
-    strip.setPixelColor(cubePanelLights[currentPanel - 1][1], strip.Color(00000, 00000, 00000));
-    strip.setPixelColor(cubePanelLights[currentPanel - 1][2], strip.Color(00000, 00000, 00000));
-    strip.setPixelColor(cubePanelLights[currentPanel - 1][3], strip.Color(00000, 00000, 00000));
-  }
-
-  strip.setPixelColor(cubePanelLights[currentPanel][0], strip.Color(255, 255, 255));
-  strip.setPixelColor(cubePanelLights[currentPanel][1], strip.Color(255, 255, 255));
-  strip.setPixelColor(cubePanelLights[currentPanel][2], strip.Color(255, 255, 255));
-  strip.setPixelColor(cubePanelLights[currentPanel][3], strip.Color(255, 255, 255));
-  strip.show();
+    neoPixelLoop();
   #endif
 
-  #ifdef TEST_DISPLAY
-  #ifdef TEST_TOUCH
+  // #ifdef TEST_DISPLAY
+  // #ifdef TEST_TOUCH
   // if (millis() > nextTime) {
   //   display.clearDisplay();
   //   display.setTextSize(1);
@@ -331,43 +528,8 @@ void loop() {
   //   nextTime = millis() + 100;
   //   display.display();
   // }
-
-
-  for (uint8_t i=0; i<12; i++) {
-    // it if *is* touched and *wasnt* touched before, alert!
-    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
-      Serial.print(i); Serial.println(" touched");
-      currentPanel += 1;
-      if (currentPanel > 5) {
-        currentPanel = 0;
-      }
-    }
-    // if it *was* touched and now *isnt*, alert!
-    if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
-      Serial.print(i); Serial.println(" released");
-    }
-  }
-
-  // reset our state
-  lasttouched = currtouched;
-
-  // comment out this line for detailed data from the sensor!
-  return;
-
-  // debugging info, what
-  Serial.print("\t\t\t\t\t\t\t\t\t\t\t\t\t 0x"); Serial.println(cap.touched(), HEX);
-  Serial.print("Filt: ");
-  for (uint8_t i=0; i<12; i++) {
-    Serial.print(cap.filteredData(i)); Serial.print("\t");
-  }
-  Serial.println();
-  Serial.print("Base: ");
-  for (uint8_t i=0; i<12; i++) {
-    Serial.print(cap.baselineData(i)); Serial.print("\t");
-  }
-  Serial.println();
-  #endif
-  #endif
+  // #endif
+  // #endif
 
   // put a delay so it isn't overwhelming
   delay(50);
