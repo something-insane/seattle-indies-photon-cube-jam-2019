@@ -2,13 +2,14 @@
 //       THIS IS A GENERATED FILE - DO NOT EDIT       //
 /******************************************************/
 
-#line 1 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
+#line 1 "/Users/matthewmccord/Workspace/photon_iot/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
 #include "Adafruit_GFX.h"
 #include "Adafruit_SSD1306.h"
 #include "Particle.h"
 #include "Adafruit_MPR121.h"
 #include "neopixel.h"
 
+// #define TEST_DISPLAY
 void displaySetup();
 void touchSetup();
 void neoPixelSetup();
@@ -19,11 +20,10 @@ void printStatus(uint16_t currtouched);
 void printBaselineData(uint16_t currtouched);
 void printFilteredData(uint16_t currtouched);
 void loop();
-#line 7 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
-#define TEST_DISPLAY
+#line 8 "/Users/matthewmccord/Workspace/photon_iot/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
 #define TEST_TOUCH
-// #define TEST_NEOPIXEL
-// #define TEST_BUZZER
+#define TEST_NEOPIXEL
+#define TEST_BUZZER
 // #define TEST_BEEPER
 
 #define BEEPER_PIN TX
@@ -53,7 +53,7 @@ void displaySetup() {
   // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
   display.begin(SSD1306_SWITCHCAPVCC);
   // init done
-  
+
   display.display(); // show splashscreen
 }
 #endif
@@ -239,13 +239,13 @@ void loop() {
       goingUp = true;
     }
   }
-  
+
   #ifdef TEST_BEEPER
   tone(BEEPER_PIN, (double)value / 255.0 * 5000, 0);
   // pinMode(TX, OUTPUT);
   // noTone(TX);
   #endif
-  
+
   #ifdef TEST_BUZZER
   tone(BUZZER_PIN, (double)value / 255.0 * 5000, 0);
   // pinMode(TX, OUTPUT);
@@ -253,14 +253,14 @@ void loop() {
   #endif
 
   #ifdef TEST_NEOPIXEL
-  
+
   strip.setPixelColor(0, strip.Color(value, 00000, 00000));
   strip.setPixelColor(1, strip.Color(00000, value, 00000));
   strip.setPixelColor(2, strip.Color(00000, 00000, value));
   for (int i = 3; i < PIXEL_COUNT - 3; i++)
     strip.setPixelColor(i, strip.Color(value, value, value));
   if (PIXEL_COUNT > 6) {
-    
+
     strip.setPixelColor(PIXEL_COUNT - 1, strip.Color(value, 00000, 00000));
     strip.setPixelColor(PIXEL_COUNT - 2, strip.Color(00000, value, 00000));
     strip.setPixelColor(PIXEL_COUNT - 3, strip.Color(00000, 00000, value));
@@ -281,7 +281,7 @@ void loop() {
     nextTime = millis() + 100;
     display.display();
   }
-  
+
 
   for (uint8_t i=0; i<12; i++) {
     // it if *is* touched and *wasnt* touched before, alert!

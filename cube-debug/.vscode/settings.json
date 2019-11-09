@@ -12,7 +12,7 @@
         "type_traits": "cpp",
         "utility": "cpp"
     },
-    "particle.targetDevice": "cube",
+    "particle.targetDevice": "splendid_easter",
     "particle.firmwareVersion": "1.4.0",
     "particle.targetPlatform": "photon"
 }
