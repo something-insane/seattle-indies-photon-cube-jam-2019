@@ -366,6 +366,9 @@ void neoPixelLoop() {
     case STATE_LOADING:
       // do the fun loading light patterns
 
+      // here we just light up all cube panels blue for "loading"
+      lightAllPanelsWithColor(strip.Color(0, 0, 255));
+
       break;
     case STATE_SHOW_PATTERN:
       {
@@ -412,6 +415,7 @@ void neoPixelLoop() {
 
       // here we just light up all cube panels red for failure
       lightAllPanelsWithColor(strip.Color(255, 0, 0));
+
       break;
   }
 }
