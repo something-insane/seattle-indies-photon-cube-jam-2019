@@ -19,23 +19,23 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
   7 .module_info_crc 00000004  080a401c  080a401c  0002401c  2**0
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  8 .debug_info   000d1a88  00000000  00000000  00024020  2**0
+  8 .debug_info   000d1a8b  00000000  00000000  00024020  2**0
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_abbrev 00013131  00000000  00000000  000f5aa8  2**0
+  9 .debug_abbrev 00013143  00000000  00000000  000f5aab  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    00016b33  00000000  00000000  00108bd9  2**0
+ 10 .debug_loc    00016b33  00000000  00000000  00108bee  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_aranges 000021d8  00000000  00000000  0011f70c  2**0
+ 11 .debug_aranges 000021d8  00000000  00000000  0011f721  2**0
                   CONTENTS, READONLY, DEBUGGING
- 12 .debug_ranges 000032f8  00000000  00000000  001218e4  2**0
+ 12 .debug_ranges 000032f8  00000000  00000000  001218f9  2**0
                   CONTENTS, READONLY, DEBUGGING
- 13 .debug_macro  0002cf98  00000000  00000000  00124bdc  2**0
+ 13 .debug_macro  0002d028  00000000  00000000  00124bf1  2**0
                   CONTENTS, READONLY, DEBUGGING
- 14 .debug_line   0002e66c  00000000  00000000  00151b74  2**0
+ 14 .debug_line   0002e66d  00000000  00000000  00151c19  2**0
                   CONTENTS, READONLY, DEBUGGING
- 15 .debug_str    000ab19f  00000000  00000000  001801e0  2**0
+ 15 .debug_str    000ab3c7  00000000  00000000  00180286  2**0
                   CONTENTS, READONLY, DEBUGGING
- 16 .debug_frame  0000be08  00000000  00000000  0022b380  2**2
+ 16 .debug_frame  0000be08  00000000  00000000  0022b650  2**2
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -210,8 +210,8 @@ class Adafruit_SSD1306 : public Adafruit_GFX {
 	...
 
 080a00cc <_Z19resetTheGlowyValuesv>:
-int glowyValue = 0;
 
+// the rate of "glow" for the lights
 int rate = 2;
 
 void resetTheGlowyValues() {
@@ -647,7 +647,7 @@ void neoPixelLoop() {
  80a0260:	5d          	.byte	0x5d
  80a0261:	00          	.byte	0x00
     case STATE_LOADING:
-      // do the fun loading light patterns
+      // do the fun loading light pattern
 
       // here we just light up all cube panels blue for "loading"
       lightAllPanelsWithColor(strip.Color(0, 0, 255));
@@ -794,7 +794,7 @@ void neoPixelLoop() {
  80a02f4:	e8bd 81f0 	ldmia.w	sp!, {r4, r5, r6, r7, r8, pc}
       break;
     case STATE_VICTORY:
-      // show some kind of cool "you did it correctly" pattern?
+      // show some kind of cool "you did it correctly" light pattern?
 
       // here we just light up all cube panels green for success
       lightAllPanelsWithColor(strip.Color(0, 255, 0));
@@ -823,7 +823,7 @@ void neoPixelLoop() {
  80a0312:	f7ff bf23 	b.w	80a015c <_Z9nextLevelv>
       break;
     case STATE_LOSER:
-      // wow what a jerk, our player failed
+      // wow what a jerk, our player failed show a boo light pattern
 
       // here we just light up all cube panels red for failure
       lightAllPanelsWithColor(strip.Color(255, 0, 0));
@@ -1073,33 +1073,33 @@ void incrementTheGlowyValues() {
 
 void loop() {
  80a0444:	b508      	push	{r3, lr}
-  #ifdef TEST_TOUCH
-    touchSensorsLoop();
- 80a0446:	f7ff ff95 	bl	80a0374 <_Z16touchSensorsLoopv>
-  #endif
-
   switch (gameState) {
- 80a044a:	4b08      	ldr	r3, [pc, #32]	; (80a046c <loop+0x28>)
- 80a044c:	681b      	ldr	r3, [r3, #0]
- 80a044e:	2b03      	cmp	r3, #3
- 80a0450:	d002      	beq.n	80a0458 <loop+0x14>
- 80a0452:	2b04      	cmp	r3, #4
- 80a0454:	d000      	beq.n	80a0458 <loop+0x14>
- 80a0456:	b90b      	cbnz	r3, 80a045c <loop+0x18>
+ 80a0446:	4b09      	ldr	r3, [pc, #36]	; (80a046c <loop+0x28>)
+ 80a0448:	681b      	ldr	r3, [r3, #0]
+ 80a044a:	2b03      	cmp	r3, #3
+ 80a044c:	d002      	beq.n	80a0454 <loop+0x10>
+ 80a044e:	2b04      	cmp	r3, #4
+ 80a0450:	d000      	beq.n	80a0454 <loop+0x10>
+ 80a0452:	b90b      	cbnz	r3, 80a0458 <loop+0x14>
     case STATE_VICTORY:
       incrementTheGlowyValues();
 
       break;
     case STATE_LOSER:
       incrementTheGlowyValues();
- 80a0458:	f7ff ffd4 	bl	80a0404 <_Z23incrementTheGlowyValuesv>
+ 80a0454:	f7ff ffd6 	bl	80a0404 <_Z23incrementTheGlowyValuesv>
   // pinMode(TX, OUTPUT);
   // noTone(TX);
   #endif
 
   #ifdef TEST_NEOPIXEL
     neoPixelLoop();
- 80a045c:	f7ff fef6 	bl	80a024c <_Z12neoPixelLoopv>
+ 80a0458:	f7ff fef8 	bl	80a024c <_Z12neoPixelLoopv>
+  #endif
+
+  #ifdef TEST_TOUCH
+    touchSensorsLoop();
+ 80a045c:	f7ff ff8a 	bl	80a0374 <_Z16touchSensorsLoopv>
   // #endif
   // #endif
 

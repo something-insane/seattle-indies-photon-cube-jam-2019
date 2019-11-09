@@ -29,37 +29,62 @@ SYSTEM_MODE(MANUAL);
 #define PANEL_FIVE  4
 #define PANEL_SIX   5
 
-#define PANEL_ONE_TOP_PIXEL       20
-#define PANEL_ONE_RIGHT_PIXEL     18
-#define PANEL_ONE_BOTTOM_PIXEL    16
-#define PANEL_ONE_LEFT_PIXEL      21
-#define PANEL_TWO_TOP_PIXEL       12
-#define PANEL_TWO_RIGHT_PIXEL      7
-#define PANEL_TWO_BOTTOM_PIXEL     6
-#define PANEL_TWO_LEFT_PIXEL       1
-#define PANEL_THREE_TOP_PIXEL     22
-#define PANEL_THREE_RIGHT_PIXEL   11
-#define PANEL_THREE_BOTTOM_PIXEL   5
-#define PANEL_THREE_LEFT_PIXEL    23
-#define PANEL_FOUR_TOP_PIXEL      17
-#define PANEL_FOUR_RIGHT_PIXEL    10
-#define PANEL_FOUR_BOTTOM_PIXEL   11
-#define PANEL_FOUR_LEFT_PIXEL     14
-#define PANEL_FIVE_TOP_PIXEL      19
-#define PANEL_FIVE_RIGHT_PIXEL    24
-#define PANEL_FIVE_BOTTOM_PIXEL    8
-#define PANEL_FIVE_LEFT_PIXEL      9
-#define PANEL_SIX_TOP_PIXEL       15
-#define PANEL_SIX_RIGHT_PIXEL     13
-#define PANEL_SIX_BOTTOM_PIXEL     0
-#define PANEL_SIX_LEFT_PIXEL       3
+#define PANEL_ONE_TOP_PIXEL         20
+#define PANEL_ONE_RIGHT_PIXEL       18
+#define PANEL_ONE_BOTTOM_PIXEL      16
+#define PANEL_ONE_LEFT_PIXEL        21
+#define PANEL_TWO_TOP_PIXEL         12
+#define PANEL_TWO_RIGHT_PIXEL        7
+#define PANEL_TWO_BOTTOM_PIXEL       6
+#define PANEL_TWO_LEFT_PIXEL         1
+#define PANEL_THREE_TOP_PIXEL       22
+#define PANEL_THREE_RIGHT_PIXEL     11
+#define PANEL_THREE_BOTTOM_PIXEL     5
+#define PANEL_THREE_LEFT_PIXEL      23
+#define PANEL_FOUR_TOP_PIXEL        17
+#define PANEL_FOUR_RIGHT_PIXEL      10
+#define PANEL_FOUR_BOTTOM_PIXEL     11
+#define PANEL_FOUR_LEFT_PIXEL       14
+#define PANEL_FIVE_TOP_PIXEL        19
+#define PANEL_FIVE_RIGHT_PIXEL      24
+#define PANEL_FIVE_BOTTOM_PIXEL      8
+#define PANEL_FIVE_LEFT_PIXEL        9
+#define PANEL_SIX_TOP_PIXEL         15
+#define PANEL_SIX_RIGHT_PIXEL       13
+#define PANEL_SIX_BOTTOM_PIXEL       0
+#define PANEL_SIX_LEFT_PIXEL         3
 
-#define STATE_LOADING              0
-#define STATE_SHOW_PATTERN         1
-#define STATE_GET_USER_INPUT       2
-#define STATE_VICTORY              3
-#define STATE_LOSER                4
-#define STATE_USER_WAS_CORRECT     5
+#define STATE_LOADING                0
+#define STATE_SHOW_PATTERN           1
+#define STATE_GET_USER_INPUT         2
+#define STATE_VICTORY                3
+#define STATE_LOSER                  4
+#define STATE_USER_WAS_CORRECT       5
+
+#define CORNER_ONE                   0
+#define CORNER_ONE_RIGHT_ADJACENT
+#define CORNER_ONE_LEFT_ADJACENT
+#define CORNER_TWO                   1
+#define CORNER_TWO_RIGHT_ADJACENT
+#define CORNER_TWO_LEFT_ADJACENT
+#define CORNER_THREE                 2
+#define CORNER_THREE_RIGHT_ADJACENT
+#define CORNER_THREE_LEFT_ADJACENT
+#define CORNER_FOUR                  3
+#define CORNER_FOUR_RIGHT_ADJACENT
+#define CORNER_FOUR_LEFT_ADJACENT
+#define CORNER_FIVE                  4
+#define CORNER_FIVE_RIGHT_ADJACENT
+#define CORNER_FIVE_LEFT_ADJACENT
+#define CORNER_SIX                   5
+#define CORNER_SIX_RIGHT_ADJACENT
+#define CORNER_SIX_LEFT_ADJACENT
+#define CORNER_SEVEN                 6
+#define CORNER_SEVEN_RIGHT_ADJACENT
+#define CORNER_SEVEN_LEFT_ADJACENT
+#define CORNER_EIGHT                 7
+#define CORNER_EIGHT_RIGHT_ADJACENT
+#define CORNER_EIGHT_LEFT_ADJACENT
 
 // current "level" or the number of panels that will light up for current "level"
 int level;
@@ -85,12 +110,16 @@ int numberOfGuesses;
 // represents whether the user has just made a guess so we can give visual feedback and check for correct or incorrect
 bool didGuessThisRound;
 
+// def char that represents current game state
 int gameState;
 
+// true if increasing the glowyValue
 bool goingUp = true;
 
+// the "brightness" of the current lighting scheme
 int glowyValue = 0;
 
+// the rate of "glow" for the lights
 int rate = 2;
 
 void resetTheGlowyValues() {
@@ -542,10 +571,6 @@ void incrementTheGlowyValues() {
 }
 
 void loop() {
-  #ifdef TEST_TOUCH
-    touchSensorsLoop();
-  #endif
-
   switch (gameState) {
     case STATE_LOADING:
       incrementTheGlowyValues();
@@ -583,6 +608,10 @@ void loop() {
 
   #ifdef TEST_NEOPIXEL
     neoPixelLoop();
+  #endif
+
+  #ifdef TEST_TOUCH
+    touchSensorsLoop();
   #endif
 
   // #ifdef TEST_DISPLAY
