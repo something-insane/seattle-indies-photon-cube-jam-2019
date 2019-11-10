@@ -3,6 +3,8 @@
 /******************************************************/
 
 #line 1 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
+
+#include <math.h>
 #include "Adafruit_GFX.h"
 #include "Adafruit_SSD1306.h"
 #include "Particle.h"
@@ -19,11 +21,11 @@ void printStatus(uint16_t currtouched);
 void printBaselineData(uint16_t currtouched);
 void printFilteredData(uint16_t currtouched);
 void loop();
-#line 7 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
+#line 9 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
 #define TEST_DISPLAY
 #define TEST_TOUCH
-// #define TEST_NEOPIXEL
-// #define TEST_BUZZER
+#define TEST_NEOPIXEL
+#define TEST_BUZZER
 // #define TEST_BEEPER
 
 #define BEEPER_PIN TX
@@ -35,8 +37,8 @@ SYSTEM_MODE(MANUAL);
 #define CHARGED_PIN D6
 
 #define PIXEL_PIN D2
-#define SCL D1
-#define SDA D0
+// #define SCL D1
+// #define SDA D0
 
 /**
  * Display
@@ -98,7 +100,7 @@ void touchSetup() {
 #define PIXEL_TYPE WS2812B
 #define BRIGHTNESS 255 // 0 - 255
 
-int gamma[] = {
+int led_gamma[] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
     1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
@@ -123,6 +125,124 @@ void neoPixelSetup() {
   strip.begin();
   strip.show();
 }
+typedef struct {
+    double r;       // a fraction between 0 and 1
+    double g;       // a fraction between 0 and 1
+    double b;       // a fraction between 0 and 1
+} rgb;
+
+typedef struct {
+    double h;       // angle in degrees
+    double s;       // a fraction between 0 and 1
+    double v;       // a fraction between 0 and 1
+} hsv;
+
+static hsv   rgb2hsv(rgb in);
+static rgb   hsv2rgb(hsv in);
+
+hsv rgb2hsv(rgb in)
+{
+    hsv         out;
+    double      min, max, delta;
+
+    min = in.r < in.g ? in.r : in.g;
+    min = min  < in.b ? min  : in.b;
+
+    max = in.r > in.g ? in.r : in.g;
+    max = max  > in.b ? max  : in.b;
+
+    out.v = max;                                // v
+    delta = max - min;
+    if (delta < 0.00001)
+    {
+        out.s = 0;
+        out.h = 0; // undefined, maybe nan?
+        return out;
+    }
+    if( max > 0.0 ) { // NOTE: if Max is == 0, this divide would cause a crash
+        out.s = (delta / max);                  // s
+    } else {
+        // if max is 0, then r = g = b = 0              
+        // s = 0, h is undefined
+        out.s = 0.0;
+        out.h = NAN;                            // its now undefined
+        return out;
+    }
+    if( in.r >= max )                           // > is bogus, just keeps compilor happy
+        out.h = ( in.g - in.b ) / delta;        // between yellow & magenta
+    else
+    if( in.g >= max )
+        out.h = 2.0 + ( in.b - in.r ) / delta;  // between cyan & yellow
+    else
+        out.h = 4.0 + ( in.r - in.g ) / delta;  // between magenta & cyan
+
+    out.h *= 60.0;                              // degrees
+
+    if( out.h < 0.0 )
+        out.h += 360.0;
+
+    return out;
+}
+
+
+rgb hsv2rgb(hsv in)
+{
+    double      hh, p, q, t, ff;
+    long        i;
+    rgb         out;
+
+    if(in.s <= 0.0) {       // < is bogus, just shuts up warnings
+        out.r = in.v;
+        out.g = in.v;
+        out.b = in.v;
+        return out;
+    }
+    hh = in.h;
+    if(hh >= 360.0) hh = 0.0;
+    hh /= 60.0;
+    i = (long)hh;
+    ff = hh - i;
+    p = in.v * (1.0 - in.s);
+    q = in.v * (1.0 - (in.s * ff));
+    t = in.v * (1.0 - (in.s * (1.0 - ff)));
+
+    switch(i) {
+    case 0:
+        out.r = in.v;
+        out.g = t;
+        out.b = p;
+        break;
+    case 1:
+        out.r = q;
+        out.g = in.v;
+        out.b = p;
+        break;
+    case 2:
+        out.r = p;
+        out.g = in.v;
+        out.b = t;
+        break;
+
+    case 3:
+        out.r = p;
+        out.g = q;
+        out.b = in.v;
+        break;
+    case 4:
+        out.r = t;
+        out.g = p;
+        out.b = in.v;
+        break;
+    case 5:
+    default:
+        out.r = in.v;
+        out.g = p;
+        out.b = q;
+        break;
+    }
+    return out;
+}
+
 #endif
 
 #ifdef TEST_BEEPER
@@ -168,6 +288,8 @@ void setup() {
   #ifdef TEST_BUZZER
   buzzerSetup();
   #endif
+
+  pinMode(CHARGING_PIN, INPUT_PULLDOWN);
 }
 
 #ifdef TEST_DISPLAY
@@ -253,17 +375,13 @@ void loop() {
   #endif
 
   #ifdef TEST_NEOPIXEL
-  
-  strip.setPixelColor(0, strip.Color(value, 00000, 00000));
-  strip.setPixelColor(1, strip.Color(00000, value, 00000));
-  strip.setPixelColor(2, strip.Color(00000, 00000, value));
-  for (int i = 3; i < PIXEL_COUNT - 3; i++)
-    strip.setPixelColor(i, strip.Color(value, value, value));
-  if (PIXEL_COUNT > 6) {
-    
-    strip.setPixelColor(PIXEL_COUNT - 1, strip.Color(value, 00000, 00000));
-    strip.setPixelColor(PIXEL_COUNT - 2, strip.Color(00000, value, 00000));
-    strip.setPixelColor(PIXEL_COUNT - 3, strip.Color(00000, 00000, value));
+  for (int i = 0; i < PIXEL_COUNT - 3; i++) {
+    rgb color = hsv2rgb(hsv {
+      (rand() % 36000)/ 100.0, // hue 0..1
+      1, // saturation 0..1
+      1 // value 0..1
+    });
+    strip.setPixelColor(i, strip.Color(color.r * 255, color.g * 255, color.b * 255));
   }
   strip.show();
   #endif
