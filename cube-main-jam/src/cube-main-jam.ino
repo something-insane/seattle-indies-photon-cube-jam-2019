@@ -4,11 +4,11 @@
 #include "Adafruit_MPR121.h"
 #include "neopixel.h"
 
-#define TEST_DISPLAY
+// #define TEST_DISPLAY
 #define TEST_TOUCH
 #define TEST_NEOPIXEL
 // #define TEST_BUZZER
-// #define TEST_BEEPER
+#define TEST_BEEPER
 
 #define BEEPER_PIN TX
 #define BUZZER_PIN WKP
@@ -19,6 +19,7 @@ SYSTEM_MODE(MANUAL);
 #define CHARGED_PIN D6
 
 #define PIXEL_PIN D2
+#define PIXEL_CORNERS_PIN D3
 #define SCL D1
 #define SDA D0
 
@@ -95,30 +96,96 @@ SYSTEM_MODE(MANUAL);
 #define CORNER_EIGHT_RIGHT_ADJACENT
 #define CORNER_EIGHT_LEFT_ADJACENT
 
-#define CORNER_ONE_TOP_PIXEL
-#define CORNER_ONE_LEFT_PIXEL
-#define CORNER_ONE_RIGHT_PIXEL
-#define CORNER_TWO_TOP_PIXEL
-#define CORNER_TWO_LEFT_PIXEL
-#define CORNER_TWO_RIGHT_PIXEL
-#define CORNER_THREE_TOP_PIXEL
-#define CORNER_THREE_LEFT_PIXEL
-#define CORNER_THREE_RIGHT_PIXEL
-#define CORNER_FOUR_TOP_PIXEL
-#define CORNER_FOUR_LEFT_PIXEL
-#define CORNER_FOUR_RIGHT_PIXEL
-#define CORNER_FIVE_TOP_PIXEL
-#define CORNER_FIVE_LEFT_PIXEL
-#define CORNER_FIVE_RIGHT_PIXEL
-#define CORNER_SIX_TOP_PIXEL
-#define CORNER_SIX_LEFT_PIXEL
-#define CORNER_SIX_RIGHT_PIXEL
-#define CORNER_SEVEN_TOP_PIXEL
-#define CORNER_SEVEN_LEFT_PIXEL
-#define CORNER_SEVEN_RIGHT_PIXEL
-#define CORNER_EIGHT_TOP_PIXEL
-#define CORNER_EIGHT_LEFT_PIXEL
-#define CORNER_EIGHT_RIGHT_PIXEL
+#define CORNER_ONE_TOP_PIXEL         0
+#define CORNER_ONE_LEFT_PIXEL        1
+#define CORNER_ONE_RIGHT_PIXEL       2
+#define CORNER_TWO_TOP_PIXEL         3
+#define CORNER_TWO_LEFT_PIXEL        4
+#define CORNER_TWO_RIGHT_PIXEL       5
+#define CORNER_THREE_TOP_PIXEL       6
+#define CORNER_THREE_LEFT_PIXEL      7
+#define CORNER_THREE_RIGHT_PIXEL     8
+#define CORNER_FOUR_TOP_PIXEL        9
+#define CORNER_FOUR_LEFT_PIXEL      10
+#define CORNER_FOUR_RIGHT_PIXEL     11
+#define CORNER_FIVE_TOP_PIXEL       12
+#define CORNER_FIVE_LEFT_PIXEL      13
+#define CORNER_FIVE_RIGHT_PIXEL     14
+#define CORNER_SIX_TOP_PIXEL        15
+#define CORNER_SIX_LEFT_PIXEL       16
+#define CORNER_SIX_RIGHT_PIXEL      17
+#define CORNER_SEVEN_TOP_PIXEL      18
+#define CORNER_SEVEN_LEFT_PIXEL     19
+#define CORNER_SEVEN_RIGHT_PIXEL    20
+#define CORNER_EIGHT_TOP_PIXEL      21
+#define CORNER_EIGHT_LEFT_PIXEL     22
+#define CORNER_EIGHT_RIGHT_PIXEL    23
+
+#define SOME_DELAY_NUMBER          4000
+
+/**
+ * NeoPixels
+ */
+#ifdef TEST_NEOPIXEL
+
+// IMPORTANT: Set pixel COUNT, PIN and TYPE
+#define PIXEL_PIN D2
+#define PIXEL_COUNT 24
+#define PIXEL_TYPE WS2812B
+#define BRIGHTNESS 50 // 0 - 255
+
+int cubePanelLights[6][4] = {
+  {PANEL_ONE_TOP_PIXEL, PANEL_ONE_RIGHT_PIXEL, PANEL_ONE_BOTTOM_PIXEL, PANEL_ONE_LEFT_PIXEL},
+  {PANEL_TWO_TOP_PIXEL, PANEL_TWO_RIGHT_PIXEL, PANEL_TWO_BOTTOM_PIXEL, PANEL_TWO_LEFT_PIXEL},
+  {PANEL_THREE_TOP_PIXEL, PANEL_THREE_RIGHT_PIXEL, PANEL_THREE_BOTTOM_PIXEL, PANEL_THREE_LEFT_PIXEL},
+  {PANEL_FOUR_TOP_PIXEL, PANEL_FOUR_RIGHT_PIXEL, PANEL_FOUR_BOTTOM_PIXEL, PANEL_FOUR_LEFT_PIXEL},
+  {PANEL_FIVE_TOP_PIXEL, PANEL_FIVE_RIGHT_PIXEL, PANEL_FIVE_BOTTOM_PIXEL, PANEL_FIVE_LEFT_PIXEL},
+  {PANEL_SIX_TOP_PIXEL, PANEL_SIX_RIGHT_PIXEL, PANEL_SIX_BOTTOM_PIXEL, PANEL_SIX_LEFT_PIXEL},
+};
+
+int cubeCornerLights[8][3] = {
+  {CORNER_ONE_TOP_PIXEL, CORNER_ONE_RIGHT_PIXEL, CORNER_ONE_LEFT_PIXEL},
+  {CORNER_TWO_TOP_PIXEL, CORNER_TWO_RIGHT_PIXEL, CORNER_TWO_LEFT_PIXEL},
+  {CORNER_THREE_TOP_PIXEL, CORNER_THREE_RIGHT_PIXEL, CORNER_THREE_LEFT_PIXEL},
+  {CORNER_FOUR_TOP_PIXEL, CORNER_FOUR_RIGHT_PIXEL, CORNER_FOUR_LEFT_PIXEL},
+  {CORNER_FIVE_TOP_PIXEL, CORNER_FIVE_RIGHT_PIXEL, CORNER_FIVE_LEFT_PIXEL},
+  {CORNER_SIX_TOP_PIXEL, CORNER_SIX_RIGHT_PIXEL, CORNER_SIX_LEFT_PIXEL},
+  {CORNER_SEVEN_TOP_PIXEL, CORNER_SEVEN_RIGHT_PIXEL, CORNER_SEVEN_LEFT_PIXEL},
+  {CORNER_EIGHT_TOP_PIXEL, CORNER_EIGHT_RIGHT_PIXEL, CORNER_EIGHT_LEFT_PIXEL},
+};
+
+int gamma[] = {
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
+    1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
+    2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
+    5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
+   10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
+   17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
+   25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
+   37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
+   51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
+   69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
+   90, 92, 93, 95, 96, 98, 99,101,102,104,105,107,109,110,112,114,
+  115,117,119,120,122,124,126,127,129,131,133,135,137,138,140,142,
+  144,146,148,150,152,154,156,158,160,162,164,167,169,171,173,175,
+  177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
+  215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
+
+Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
+Adafruit_NeoPixel stripCorners(PIXEL_COUNT, PIXEL_CORNERS_PIN, PIXEL_TYPE);
+
+uint32_t COLOR_RED = strip.Color(255, 0, 0);
+uint32_t COLOR_BLUE = strip.Color(0, 0, 255);
+uint32_t COLOR_GREEN = strip.Color(0, 255, 0);
+uint32_t COLOR_YELLOW = strip.Color(255, 255, 0);
+uint32_t COLOR_PURPLE = strip.Color(255, 0, 255);
+uint32_t COLOR_TEAL = strip.Color(0, 255, 255);
+uint32_t COLOR_WHITE = strip.Color(255, 255, 255);
+
+uint32_t COLOR_OFF = strip.Color(0, 0, 0);
+
+uint32_t colorChoices[] = { COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW };
 
 // current "level" or the number of panels that will light up for current "level"
 int level;
@@ -162,6 +229,8 @@ int currentStateCounter = 0;
 // counter for cool sweeps
 int coolSweepCounter = 0;
 
+bool panelsLitThisRound = false;
+
 void resetTheGlowyValues() {
   goingUp = true;
   glowyValue = 0;
@@ -171,33 +240,76 @@ void resetTheGlowyValues() {
 void nextLevel() {
   changeGameState(STATE_LOADING);
 
+  #ifdef TEST_BEEPER
+    tone(BEEPER_PIN, 220, 1000);
+  #endif
+
   level += 1;
 
   initCurrentLevel();
+}
+
+void setCornerToColor(int corner, uint32_t color) {
+  stripCorners.setPixelColor(corner, color);
+}
+
+void setAllCornerColors() {
+  // 8 Corners on the cube but we will just set the top 4
+  for (int i = 4; i < 8; i += 1) {
+    for (int j = 0; j < 3; j += 1 ) {
+      setCornerToColor(cubeCornerLights[i][j], colorChoices[i - 4]);
+    }
+  }
+
+  stripCorners.show();
+}
+
+void clearAllCornerColors() {
+  // 8 Corners on the cube
+  for (int i = 0; i < 8; i += 1) {
+    for (int j = 0; j < 3; j += 1 ) {
+      setCornerToColor(cubeCornerLights[i][j], COLOR_OFF);
+    }
+  }
+
+  stripCorners.show();
 }
 
 void changeGameState(int newState) {
   // here we can do some cleanup / setup depending on the state we are about to enter
   switch (newState) {
     case STATE_LOADING:
-      resetTheGlowyValues();
+      clearAllCornerColors();
+
+      // here we just light up all cube panels blue for "loading"
+      lightAllPanelsWithColor(strip.Color(0, 0, 255));
+      // resetTheGlowyValues();
 
       break;
     case STATE_SHOW_PATTERN:
+      setAllCornerColors();
       // do nothing
 
       break;
     case STATE_GET_USER_INPUT:
-      patternCount += 1;
       didGuessThisRound = false;
 
       break;
     case STATE_VICTORY:
-      resetTheGlowyValues();
+      clearAllCornerColors();
+
+      // here we just light up all cube panels green for success
+      lightAllPanelsWithColor(COLOR_WHITE);
+
+      // resetTheGlowyValues();
 
       break;
     case STATE_LOSER:
-      resetTheGlowyValues();
+      clearAllCornerColors();
+
+      // here we just light up all cube panels red for failure
+      lightAllPanelsWithColor(COLOR_PURPLE);
+      // resetTheGlowyValues();
 
       break;
   }
@@ -208,26 +320,24 @@ void changeGameState(int newState) {
 }
 
 void initCurrentLevel() {
-  changeGameState(STATE_LOADING);
   patternCount = 0;
   numberOfGuesses = 0;
 
-  int panels[] = { PANEL_ONE, PANEL_TWO, PANEL_THREE, PANEL_FOUR, PANEL_FIVE, PANEL_SIX };
+  // int panels[] = { PANEL_ONE, PANEL_TWO, PANEL_THREE, PANEL_FOUR, PANEL_FIVE, PANEL_SIX };
 
-  size_t panelSize = sizeof(panels) / sizeof(int);
-  int count = static_cast<int>(panelSize);
+  size_t sizer = sizeof(colorChoices) / sizeof(uint32_t);
+  int counts = static_cast<int>(sizer);
 
-  for (int i = 0; i < count; i += 1) {
-    int rndIndex = PANEL_ONE + (rand() % static_cast<int>(PANEL_SIX - PANEL_ONE + 1));
+  for (int i = 0; i < level; i += 1) {
+    int rndIndex = rand() % static_cast<int>(counts);
 
-    pattern[i] = panels[rndIndex];
+    pattern[i] = colorChoices[rndIndex];
   }
 
   currentCorrectPin = pattern[0];
 }
 
 void initCube() {
-  changeGameState(STATE_LOADING);
   level = 0;
   delayBetweenColors = 50;
   rndDelayRange = 1;
@@ -284,60 +394,24 @@ void touchSetup() {
 }
 #endif
 
-/**
- * NeoPixels
- */
-#ifdef TEST_NEOPIXEL
-
-// IMPORTANT: Set pixel COUNT, PIN and TYPE
-#define PIXEL_PIN D2
-#define PIXEL_COUNT 24
-#define PIXEL_TYPE WS2812B
-#define BRIGHTNESS 255 // 0 - 255
-
-int cubePanelLights[6][4] = {
-  {PANEL_ONE_TOP_PIXEL, PANEL_ONE_RIGHT_PIXEL, PANEL_ONE_BOTTOM_PIXEL, PANEL_ONE_LEFT_PIXEL},
-  {PANEL_TWO_TOP_PIXEL, PANEL_TWO_RIGHT_PIXEL, PANEL_TWO_BOTTOM_PIXEL, PANEL_TWO_LEFT_PIXEL},
-  {PANEL_THREE_TOP_PIXEL, PANEL_THREE_RIGHT_PIXEL, PANEL_THREE_BOTTOM_PIXEL, PANEL_THREE_LEFT_PIXEL},
-  {PANEL_FOUR_TOP_PIXEL, PANEL_FOUR_RIGHT_PIXEL, PANEL_FOUR_BOTTOM_PIXEL, PANEL_FOUR_LEFT_PIXEL},
-  {PANEL_FIVE_TOP_PIXEL, PANEL_FIVE_RIGHT_PIXEL, PANEL_FIVE_BOTTOM_PIXEL, PANEL_FIVE_LEFT_PIXEL},
-  {PANEL_SIX_TOP_PIXEL, PANEL_SIX_RIGHT_PIXEL, PANEL_SIX_BOTTOM_PIXEL, PANEL_SIX_LEFT_PIXEL},
-};
-
-int gamma[] = {
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
-    1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
-    2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
-    5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
-   10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
-   17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
-   25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
-   37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
-   51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
-   69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
-   90, 92, 93, 95, 96, 98, 99,101,102,104,105,107,109,110,112,114,
-  115,117,119,120,122,124,126,127,129,131,133,135,137,138,140,142,
-  144,146,148,150,152,154,156,158,160,162,164,167,169,171,173,175,
-  177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
-  215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
-
-Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
-
 void neoPixelSetup() {
   strip.setBrightness(BRIGHTNESS);
   strip.begin();
   strip.show();
+
+  stripCorners.setBrightness(BRIGHTNESS);
+  stripCorners.begin();
+  stripCorners.show();
 }
 
-void coolLightSweepNumberOne() {
-  coolSweepCounter += 1;
-  // int order[] = { PANEL_ONE, PANEL_TWO, PANEL_FOUR, PANEL_FIVE, PANEL_THREE, PANEL_SIX };
-  int pixel = coolSweepCounter / 4; // 4 is the number of pixels per panel
+// void coolLightSweepNumberOne() {
+//   coolSweepCounter += 1;
+//   // int order[] = { PANEL_ONE, PANEL_TWO, PANEL_FOUR, PANEL_FIVE, PANEL_THREE, PANEL_SIX };
+//   int pixel = coolSweepCounter / 4; // 4 is the number of pixels per panel
 
 
-  // 6 panels total
-}
+//   // 6 panels total
+// }
 
 void lightAllPanelsWithColor(uint32_t panelColor) {
   // 6 is the number of panels
@@ -347,6 +421,8 @@ void lightAllPanelsWithColor(uint32_t panelColor) {
       strip.setPixelColor(cubePanelLights[i][j], panelColor);
     }
   }
+
+  strip.show();
 }
 
 #endif
@@ -365,7 +441,7 @@ void buzzerSetup() {
 
 void setup() {
   #ifdef TEST_DISPLAY
-  // displaySetup();
+  displaySetup();
   #endif
 
   #ifdef TEST_TOUCH
@@ -385,114 +461,52 @@ void setup() {
   #endif
 
   initCube();
-}// THIS NEEDS DISPLAY
-
-
-// #ifdef TEST_TOUCH
-// #endif
-
-// #ifdef TEST_DISPLAY
-// THIS NEEDS DISPLAY
-// unsigned long nextTime = 0;
-// void printStatus(uint16_t currtouched) {
-//   int textSize = 5 + 1 + 5 + 1 + 5;
-//   int gapSize = (128 - (textSize * 6)) / 5;
-//   for (int i = 0; i < 6; i++) {
-//     display.setCursor((i * (gapSize+textSize)), 0);
-//     display.print(currtouched & (1 << i) ? "***" : " - ");
-//   }
-//   for (int i = 0; i < 6; i++) {
-//     display.setCursor((i * (gapSize+textSize)), 32);
-//     display.print(currtouched & (1 << (i + 6)) ? "***" : " - ");
-//   }
-// }
-
-// THIS NEEDS DISPLAY
-// void printBaselineData(uint16_t currtouched) {
-//   int textSize = 5 + 1 + 5 + 1 + 5;
-//   int gapSize = (128 - (textSize * 6)) / 5;
-//   for (int i = 0; i < 6; i++) {
-//     display.setCursor(i * (gapSize+textSize), 0 + 8);
-//     display.print(cap.baselineData(i));
-//   }
-//   for (int i = 0; i < 6; i++) {
-//     display.setCursor(i * (gapSize+textSize), 32 + 8);
-//     display.print(cap.baselineData(i + 6));
-//   }
-// }
-
-// THIS NEEDS DISPLAY
-// void printFilteredData(uint16_t currtouched) {
-//   int textSize = 5 + 1 + 5 + 1 + 5;
-//   int gapSize = (128 - (textSize * 6)) / 5;
-//   for (int i = 0; i < 6; i++) {
-//     display.setCursor(i * (gapSize+textSize), 0 + 8 + 10);
-//     display.print(cap.filteredData(i));
-//   }
-//   for (int i = 0; i < 6; i++) {
-//     display.setCursor(i * (gapSize+textSize), 32 + 8 + 10);
-//     display.print(cap.filteredData(i + 6));
-//   }
-// }
-// #endif
+}
 
 void neoPixelLoop() {
   // strip.setPixelColor(pixel_number, strip.Color(R, G, B));
 
   switch (gameState) {
     case STATE_LOADING:
-      // do the fun loading light pattern
-
-      // here we just light up all cube panels blue for "loading"
-      lightAllPanelsWithColor(strip.Color(0, 0, 255));
-
-      if (currentStateCounter > 500) {
-        changeGameState(STATE_SHOW_PATTERN);
-      }
+      // do the fun loading light pattern?
 
       break;
     case STATE_SHOW_PATTERN:
       {
         // display the current levels pattern on the cube to user
-        int currentPanel = pattern[patternCount];
-        int delayCount = 50;
+        uint32_t currentColor = pattern[patternCount];
 
-        if (currentStateCounter <= delayCount) {
-          // TURN PANEL ON
-          // 4 is the number of lights per panel
-          for (int i = 0; i < 4; i += 1) {
-            strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(255, 255, 255));
+        if (currentStateCounter <= SOME_DELAY_NUMBER) {
+          if (!panelsLitThisRound) {
+            panelsLitThisRound = true;
+
+            lightAllPanelsWithColor(currentColor);
           }
-
-          strip.show();
         }
 
-        if (currentStateCounter > delayCount) {
-          // TURN PANEL OFF
-          for (int i = 0; i < 4; i += 1) {
-            strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(0, 0, 0));
+        if (currentStateCounter > SOME_DELAY_NUMBER) {
+          lightAllPanelsWithColor(COLOR_OFF);
+
+          patternCount += 1;
+          panelsLitThisRound = false;
+
+          if (patternCount >= level) {
+            changeGameState(STATE_GET_USER_INPUT);
           }
-
-          strip.show();
-
-          changeGameState(STATE_GET_USER_INPUT);
         }
       }
       break;
     case STATE_GET_USER_INPUT:
       // give feedback when a corner is pressed
       if (didGuessThisRound == true) {
-        // TODO: light up the corner that was touched
+        // TODO: light up the corner that was touched?
       }
 
       break;
     case STATE_VICTORY:
       // show some kind of cool "you did it correctly" light pattern?
 
-      // here we just light up all cube panels green for success
-      lightAllPanelsWithColor(strip.Color(0, 255, 0));
-
-      if (currentStateCounter > 500) {
+      if (currentStateCounter > SOME_DELAY_NUMBER) {
         nextLevel();
       }
 
@@ -500,10 +514,7 @@ void neoPixelLoop() {
     case STATE_LOSER:
       // wow what a jerk, our player failed show a boo light pattern
 
-      // here we just light up all cube panels red for failure
-      lightAllPanelsWithColor(strip.Color(255, 0, 0));
-
-      if (currentStateCounter > 500) {
+      if (currentStateCounter > SOME_DELAY_NUMBER) {
         initCube();
       }
 
@@ -516,6 +527,7 @@ void handleTouchedPin(int pinNumber) {
 
   // TODO: Remove always assuming correct sensor/corner was touched
   changeGameState(STATE_VICTORY);
+  return;
 
   // check if corrent Pin was guessed
   // if (pinNumber == currentCorrectPin) {
@@ -541,6 +553,10 @@ void handleReleasedPin(int pinNumber) {
 }
 
 void touchSensorsLoop() {
+  // cap.setThresholds(touch_threshold, release_threshold);
+  // Get the currently touched pads
+  currtouched = cap.touched();
+
   switch (gameState) {
     case STATE_LOADING:
       // do nothing
@@ -616,11 +632,17 @@ void incrementTheGlowyValues() {
 }
 
 void loop() {
-  currentStateCounter += 1;
+  if (currentStateCounter <= SOME_DELAY_NUMBER) {
+    currentStateCounter += 1;
+  }
 
   switch (gameState) {
     case STATE_LOADING:
-      incrementTheGlowyValues();
+      // incrementTheGlowyValues();
+
+      if (currentStateCounter > SOME_DELAY_NUMBER) {
+        changeGameState(STATE_SHOW_PATTERN);
+      }
 
       break;
     case STATE_SHOW_PATTERN:
@@ -632,20 +654,14 @@ void loop() {
 
       break;
     case STATE_VICTORY:
-      incrementTheGlowyValues();
+      // incrementTheGlowyValues();
 
       break;
     case STATE_LOSER:
-      incrementTheGlowyValues();
+      // incrementTheGlowyValues();
 
       break;
   }
-
-  #ifdef TEST_BEEPER
-  tone(BEEPER_PIN, static_cast<double>(glowyValue) / 255.0 * 5000, 0);
-  // pinMode(TX, OUTPUT);
-  // noTone(TX);
-  #endif
 
   #ifdef TEST_BUZZER
   tone(BUZZER_PIN, static_cast<double>(glowyValue) / 255.0 * 5000, 0);
@@ -660,23 +676,4 @@ void loop() {
   #ifdef TEST_TOUCH
     touchSensorsLoop();
   #endif
-
-  // #ifdef TEST_DISPLAY
-  // #ifdef TEST_TOUCH
-  // if (millis() > nextTime) {
-  //   display.clearDisplay();
-  //   display.setTextSize(1);
-  //   display.setTextColor(WHITE);
-  //   display.setCursor(0,0);
-  //   printStatus(currtouched);
-  //   printFilteredData(currtouched);
-  //   printBaselineData(currtouched);
-  //   nextTime = millis() + 100;
-  //   display.display();
-  // }
-  // #endif
-  // #endif
-
-  // put a delay so it isn't overwhelming
-  delay(50);
 }
