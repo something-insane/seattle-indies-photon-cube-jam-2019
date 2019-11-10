@@ -17,6 +17,7 @@ void initCube();
 void displaySetup();
 void touchSetup();
 void neoPixelSetup();
+void coolLightSweepNumberOne();
 void lightAllPanelsWithColor(uint32_t panelColor);
 void beeperSetup();
 void buzzerSetup();
@@ -84,31 +85,65 @@ SYSTEM_MODE(MANUAL);
 #define STATE_VICTORY                3
 #define STATE_LOSER                  4
 #define STATE_USER_WAS_CORRECT       5
+#define STATE_COOL_SWEEPS            6
 
 #define CORNER_ONE                   0
+#define CORNER_ONE_TOP_ADJACENT
 #define CORNER_ONE_RIGHT_ADJACENT
 #define CORNER_ONE_LEFT_ADJACENT
 #define CORNER_TWO                   1
+#define CORNER_TWO_TOP_ADJACENT
 #define CORNER_TWO_RIGHT_ADJACENT
 #define CORNER_TWO_LEFT_ADJACENT
 #define CORNER_THREE                 2
+#define CORNER_THREE_TOP_ADJACENT
 #define CORNER_THREE_RIGHT_ADJACENT
 #define CORNER_THREE_LEFT_ADJACENT
 #define CORNER_FOUR                  3
+#define CORNER_FOUR_TOP_ADJACENT
 #define CORNER_FOUR_RIGHT_ADJACENT
 #define CORNER_FOUR_LEFT_ADJACENT
 #define CORNER_FIVE                  4
+#define CORNER_FIVE_TOP_ADJACENT
 #define CORNER_FIVE_RIGHT_ADJACENT
 #define CORNER_FIVE_LEFT_ADJACENT
 #define CORNER_SIX                   5
+#define CORNER_SIX_TOP_ADJACENT
 #define CORNER_SIX_RIGHT_ADJACENT
 #define CORNER_SIX_LEFT_ADJACENT
 #define CORNER_SEVEN                 6
+#define CORNER_SEVEN_TOP_ADJACENT
 #define CORNER_SEVEN_RIGHT_ADJACENT
 #define CORNER_SEVEN_LEFT_ADJACENT
 #define CORNER_EIGHT                 7
+#define CORNER_EIGHT_TOP_ADJACENT
 #define CORNER_EIGHT_RIGHT_ADJACENT
 #define CORNER_EIGHT_LEFT_ADJACENT
+
+#define CORNER_ONE_TOP_PIXEL
+#define CORNER_ONE_LEFT_PIXEL
+#define CORNER_ONE_RIGHT_PIXEL
+#define CORNER_TWO_TOP_PIXEL
+#define CORNER_TWO_LEFT_PIXEL
+#define CORNER_TWO_RIGHT_PIXEL
+#define CORNER_THREE_TOP_PIXEL
+#define CORNER_THREE_LEFT_PIXEL
+#define CORNER_THREE_RIGHT_PIXEL
+#define CORNER_FOUR_TOP_PIXEL
+#define CORNER_FOUR_LEFT_PIXEL
+#define CORNER_FOUR_RIGHT_PIXEL
+#define CORNER_FIVE_TOP_PIXEL
+#define CORNER_FIVE_LEFT_PIXEL
+#define CORNER_FIVE_RIGHT_PIXEL
+#define CORNER_SIX_TOP_PIXEL
+#define CORNER_SIX_LEFT_PIXEL
+#define CORNER_SIX_RIGHT_PIXEL
+#define CORNER_SEVEN_TOP_PIXEL
+#define CORNER_SEVEN_LEFT_PIXEL
+#define CORNER_SEVEN_RIGHT_PIXEL
+#define CORNER_EIGHT_TOP_PIXEL
+#define CORNER_EIGHT_LEFT_PIXEL
+#define CORNER_EIGHT_RIGHT_PIXEL
 
 // current "level" or the number of panels that will light up for current "level"
 int level;
@@ -146,6 +181,12 @@ int glowyValue = 0;
 // the rate of "glow" for the lights
 int rate = 2;
 
+// a counter useable by current state. resets on every state change
+int currentStateCounter = 0;
+
+// counter for cool sweeps
+int coolSweepCounter = 0;
+
 void resetTheGlowyValues() {
   goingUp = true;
   glowyValue = 0;
@@ -153,6 +194,8 @@ void resetTheGlowyValues() {
 }
 
 void nextLevel() {
+  changeGameState(STATE_LOADING);
+
   level += 1;
 
   initCurrentLevel();
@@ -170,6 +213,7 @@ void changeGameState(int newState) {
 
       break;
     case STATE_GET_USER_INPUT:
+      patternCount += 1;
       didGuessThisRound = false;
 
       break;
@@ -182,6 +226,8 @@ void changeGameState(int newState) {
 
       break;
   }
+
+  currentStateCounter = 0;
 
   gameState = newState;
 }
@@ -309,6 +355,15 @@ void neoPixelSetup() {
   strip.show();
 }
 
+void coolLightSweepNumberOne() {
+  coolSweepCounter += 1;
+  // int order[] = { PANEL_ONE, PANEL_TWO, PANEL_FOUR, PANEL_FIVE, PANEL_THREE, PANEL_SIX };
+  int pixel = coolSweepCounter / 4; // 4 is the number of pixels per panel
+
+
+  // 6 panels total
+}
+
 void lightAllPanelsWithColor(uint32_t panelColor) {
   // 6 is the number of panels
   for (int i = 0; i < 6; i += 1) {
@@ -334,17 +389,6 @@ void buzzerSetup() {
 #endif
 
 void setup() {
-  // Serial.begin(9600);
-  // delay(1000);
-  // Serial.println("External Hardware Test");
-  // delay(1000);
-  // Serial.println("External Hardware Test");
-  // delay(1000);
-  // Serial.println("External Hardware Test");
-  // delay(1000);
-  // Serial.println("External Hardware Test");
-  // delay(1000);
-  // Serial.println("External Hardware Test");
   #ifdef TEST_DISPLAY
   // displaySetup();
   #endif
@@ -427,35 +471,37 @@ void neoPixelLoop() {
       // here we just light up all cube panels blue for "loading"
       lightAllPanelsWithColor(strip.Color(0, 0, 255));
 
-      delay(4000);
-
-      changeGameState(STATE_SHOW_PATTERN);
+      if (currentStateCounter > 500) {
+        changeGameState(STATE_SHOW_PATTERN);
+      }
 
       break;
     case STATE_SHOW_PATTERN:
       {
         // display the current levels pattern on the cube to user
         int currentPanel = pattern[patternCount];
+        int delayCount = 50;
 
-        // TURN PANEL ON
-        // 4 is the number of lights per panel
-        for (int i = 0; i < 4; i += 1) {
-          strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(255, 255, 255));
+        if (currentStateCounter <= delayCount) {
+          // TURN PANEL ON
+          // 4 is the number of lights per panel
+          for (int i = 0; i < 4; i += 1) {
+            strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(255, 255, 255));
+          }
+
+          strip.show();
         }
 
-        strip.show();
+        if (currentStateCounter > delayCount) {
+          // TURN PANEL OFF
+          for (int i = 0; i < 4; i += 1) {
+            strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(0, 0, 0));
+          }
 
-        delay(2000);
+          strip.show();
 
-        // TURN PANEL OFF
-        for (int i = 0; i < 4; i += 1) {
-          strip.setPixelColor(cubePanelLights[currentPanel][i], strip.Color(0, 0, 0));
+          changeGameState(STATE_GET_USER_INPUT);
         }
-
-        strip.show();
-        patternCount += 1;
-
-        changeGameState(STATE_GET_USER_INPUT);
       }
       break;
     case STATE_GET_USER_INPUT:
@@ -471,9 +517,9 @@ void neoPixelLoop() {
       // here we just light up all cube panels green for success
       lightAllPanelsWithColor(strip.Color(0, 255, 0));
 
-      delay(4000);
-
-      nextLevel();
+      if (currentStateCounter > 500) {
+        nextLevel();
+      }
 
       break;
     case STATE_LOSER:
@@ -482,9 +528,9 @@ void neoPixelLoop() {
       // here we just light up all cube panels red for failure
       lightAllPanelsWithColor(strip.Color(255, 0, 0));
 
-      delay(4000);
-
-      initCube();
+      if (currentStateCounter > 500) {
+        initCube();
+      }
 
       break;
   }
@@ -595,6 +641,8 @@ void incrementTheGlowyValues() {
 }
 
 void loop() {
+  currentStateCounter += 1;
+
   switch (gameState) {
     case STATE_LOADING:
       incrementTheGlowyValues();
