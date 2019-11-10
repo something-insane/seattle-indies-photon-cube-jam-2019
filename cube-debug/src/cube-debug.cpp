@@ -3,9 +3,13 @@
 /******************************************************/
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #line 1 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
 
 #include <math.h>
+=======
+#line 1 "/Users/matthewmccord/Workspace/photon_iot/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
+>>>>>>> 731424d142190ec06f28eebceeba14a6ae3b79f2
 =======
 #line 1 "/Users/matthewmccord/Workspace/photon_iot/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
 >>>>>>> 731424d142190ec06f28eebceeba14a6ae3b79f2
@@ -27,8 +31,12 @@ void printBaselineData(uint16_t currtouched);
 void printFilteredData(uint16_t currtouched);
 void loop();
 <<<<<<< HEAD
+<<<<<<< HEAD
 #line 9 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
 #define TEST_DISPLAY
+=======
+#line 8 "/Users/matthewmccord/Workspace/photon_iot/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
+>>>>>>> 731424d142190ec06f28eebceeba14a6ae3b79f2
 =======
 #line 8 "/Users/matthewmccord/Workspace/photon_iot/seattle-indies-photon-cube-jam-2019/cube-debug/src/cube-debug.ino"
 >>>>>>> 731424d142190ec06f28eebceeba14a6ae3b79f2
@@ -385,6 +393,7 @@ void loop() {
 
   #ifdef TEST_NEOPIXEL
 <<<<<<< HEAD
+<<<<<<< HEAD
   for (int i = 0; i < PIXEL_COUNT - 3; i++) {
     rgb color = hsv2rgb(hsv {
       (rand() % 36000)/ 100.0, // hue 0..1
@@ -393,6 +402,8 @@ void loop() {
     });
     strip.setPixelColor(i, strip.Color(color.r * 255, color.g * 255, color.b * 255));
 =======
+=======
+>>>>>>> 731424d142190ec06f28eebceeba14a6ae3b79f2
 
   strip.setPixelColor(0, strip.Color(value, 00000, 00000));
   strip.setPixelColor(1, strip.Color(00000, value, 00000));
