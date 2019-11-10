@@ -359,6 +359,7 @@ void loop() {
   #endif
 
   #ifdef TEST_NEOPIXEL
+<<<<<<< HEAD
   for (int i = 0; i < PIXEL_COUNT - 3; i++) {
     rgb color = hsv2rgb(hsv {
       (rand() % 36000)/ 100.0, // hue 0..1
@@ -366,6 +367,8 @@ void loop() {
       1 // value 0..1
     });
     strip.setPixelColor(i, strip.Color(color.r * 255, color.g * 255, color.b * 255));
+=======
+>>>>>>> 731424d142190ec06f28eebceeba14a6ae3b79f2
 
   strip.setPixelColor(0, strip.Color(value, 00000, 00000));
   strip.setPixelColor(1, strip.Color(00000, value, 00000));
