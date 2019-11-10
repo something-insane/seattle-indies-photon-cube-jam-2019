@@ -229,6 +229,9 @@ int currentStateCounter = 0;
 // counter for cool sweeps
 int coolSweepCounter = 0;
 
+// how many times we have flashed the loading colors
+int loadingCount;
+
 bool panelsLitThisRound = false;
 
 void resetTheGlowyValues() {
@@ -279,6 +282,7 @@ void changeGameState(int newState) {
   // here we can do some cleanup / setup depending on the state we are about to enter
   switch (newState) {
     case STATE_LOADING:
+      loadingCount = 0;
       clearAllCornerColors();
 
       // here we just light up all cube panels blue for "loading"
@@ -469,6 +473,19 @@ void neoPixelLoop() {
   switch (gameState) {
     case STATE_LOADING:
       // do the fun loading light pattern?
+      if (currentStateCounter <= SOME_DELAY_NUMBER / 2) {
+        lightAllPanelsWithColor(COLOR_BLUE);
+      }
+
+      if (currentStateCounter > SOME_DELAY_NUMBER / 2) {
+        lightAllPanelsWithColor(COLOR_OFF);
+
+        loadingCount += 1;
+
+        if (loadingCount >= level) {
+          changeGameState(STATE_GET_USER_INPUT);
+        }
+      }
 
       break;
     case STATE_SHOW_PATTERN:
