@@ -6,7 +6,7 @@
 #include "Adafruit_MPR121.h"
 #include "neopixel.h"
 
-#define TEST_DISPLAY
+// #define TEST_DISPLAY
 #define TEST_TOUCH
 #define TEST_NEOPIXEL
 #define TEST_BUZZER
@@ -39,7 +39,7 @@ void displaySetup() {
   // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
   display.begin(SSD1306_SWITCHCAPVCC);
   // init done
-  
+
   display.display(); // show splashscreen
 }
 #endif
@@ -345,13 +345,13 @@ void loop() {
       goingUp = true;
     }
   }
-  
+
   #ifdef TEST_BEEPER
   tone(BEEPER_PIN, (double)value / 255.0 * 5000, 0);
   // pinMode(TX, OUTPUT);
   // noTone(TX);
   #endif
-  
+
   #ifdef TEST_BUZZER
   tone(BUZZER_PIN, (double)value / 255.0 * 5000, 0);
   // pinMode(TX, OUTPUT);
@@ -359,6 +359,7 @@ void loop() {
   #endif
 
   #ifdef TEST_NEOPIXEL
+<<<<<<< HEAD
   for (int i = 0; i < PIXEL_COUNT - 3; i++) {
     rgb color = hsv2rgb(hsv {
       (rand() % 36000)/ 100.0, // hue 0..1
@@ -366,6 +367,19 @@ void loop() {
       1 // value 0..1
     });
     strip.setPixelColor(i, strip.Color(color.r * 255, color.g * 255, color.b * 255));
+=======
+
+  strip.setPixelColor(0, strip.Color(value, 00000, 00000));
+  strip.setPixelColor(1, strip.Color(00000, value, 00000));
+  strip.setPixelColor(2, strip.Color(00000, 00000, value));
+  for (int i = 3; i < PIXEL_COUNT - 3; i++)
+    strip.setPixelColor(i, strip.Color(value, value, value));
+  if (PIXEL_COUNT > 6) {
+
+    strip.setPixelColor(PIXEL_COUNT - 1, strip.Color(value, 00000, 00000));
+    strip.setPixelColor(PIXEL_COUNT - 2, strip.Color(00000, value, 00000));
+    strip.setPixelColor(PIXEL_COUNT - 3, strip.Color(00000, 00000, value));
+>>>>>>> 731424d142190ec06f28eebceeba14a6ae3b79f2
   }
   strip.show();
   #endif
@@ -383,7 +397,7 @@ void loop() {
     nextTime = millis() + 100;
     display.display();
   }
-  
+
 
   for (uint8_t i=0; i<12; i++) {
     // it if *is* touched and *wasnt* touched before, alert!
