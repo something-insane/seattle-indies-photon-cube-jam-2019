@@ -15,6 +15,8 @@ static void chaseBoth();
 static void checkPower();
 static void chaseA(uint32_t c);
 static void chaseB(uint32_t c);
+static void chaseAStepwiseSingle(uint32_t c, bool erase);
+static void chaseBStepwiseSingle(uint32_t c, bool erase);
 static void onA(uint32_t c);
 static void onB(uint32_t c);
 #line 5 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-power/src/cube-power.ino"
@@ -40,6 +42,12 @@ Adafruit_NeoPixel stripA(PIXEL_COUNT_A, PIXEL_PIN_A, PIXEL_TYPE_A);
 Adafruit_NeoPixel stripB(PIXEL_COUNT_B, PIXEL_PIN_B, PIXEL_TYPE_B);
 
 Adafruit_MPR121 cap = Adafruit_MPR121();
+
+uint16_t lastPixelA = 0;
+uint16_t lastPixelB = 0;
+
+uint16_t changeCounterA = 0;
+uint16_t changeCounterB = 0;
 
 // Keeps track of the last pins touched
 // so we know when buttons are 'released'
@@ -78,8 +86,25 @@ void setup() {
 
   pinMode(CHARGING_PIN, INPUT_PULLDOWN);
   pinMode(CHARGED_PIN, INPUT_PULLDOWN);
-  pinMode(BEEPER_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  analogWrite(BUZZER_PIN, 255);
+  delay(1000);
+  tone(BUZZER_PIN, 440, 0);
 }
+
+int redA = 0;
+int greenA = 0;
+int blueA = 0;
+int redB = 0;
+int greenB = 0;
+int blueB = 0;
+
+int redALast = 0;
+int greenALast = 0;
+int blueALast = 0;
+int redBLast = 0;
+int greenBLast = 0;
+int blueBLast = 0;
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
@@ -87,12 +112,12 @@ void loop() {
   // Particle.process();
   // #endif
   checkPower();
+  tone(BEEPER_PIN, 440, 0);
 
   // the actual game
   currtouched = cap.touched();
-  int redA = 0;
-  int greenA = 0;
-  int blueA = 0;
+  redA = greenA = blueA = 0;
+  redB = greenB = blueB = 0;
   if (currtouched & _BV(0)) {
     redA = 255;
   }
@@ -108,10 +133,6 @@ void loop() {
   if (currtouched & _BV(3)) {
     redA = greenA = blueA = 255;
   }
-
-  int redB = 0;
-  int greenB = 0;
-  int blueB = 0;
   if (currtouched & _BV(6)) {
     redB = 255;
   }
@@ -128,36 +149,43 @@ void loop() {
     redB = greenB = blueB = 255;
   }
 
-  bool setA =
-    (currtouched & 0b111111)
-    == (lasttouched & 0b111111)
-    || !(currtouched & 0b111111);
+  bool aChanged =
+    redA != redALast
+    || greenA != greenALast
+    || blueA != blueALast;
 
-  if (setA) {
-    onA(stripA.Color(redA, greenA, blueA));
+  bool bChanged =
+    redB != redBLast
+    || greenB != greenBLast
+    || blueB != blueBLast;
+
+  if (aChanged) {
+    changeCounterA = 0;
+    // onA(stripA.Color(0, 0, 0));
   }
 
-  bool setB =
-    (currtouched & 0b111111000000)
-    == (lasttouched & 0b111111000000)
-    || !(currtouched & 0b111111000000);
-
-  if (setB) {
-    onB(stripB.Color(redB, greenB, blueB));
+  if (bChanged){
+    changeCounterB = 0;
+    // onB(stripB.Color(0, 0, 0));
   }
+  
+  chaseAStepwiseSingle(stripA.Color(redA, greenA, blueA), false);
 
-  if (!setA) {
-    chaseA(stripA.Color(redA, greenA, blueA));
-  }
-
-  if (!setB) {
-    chaseB(stripB.Color(redB, greenB, blueB));
-  }
+  chaseBStepwiseSingle(stripB.Color(redB, greenB, blueB), false);
 
 
   Serial.println("loop");
   // chaseBoth();
   lasttouched = currtouched;
+
+  redALast = redA;
+  greenALast = greenA;
+  blueALast = blueA;
+  redBLast = redB;
+  greenBLast = greenB;
+  blueBLast = blueB;
+
+  delay(25);
 }
 
 static void chaseBoth() {
@@ -243,6 +271,20 @@ static void chaseB(uint32_t c) {
       stripB.show();
       delay(25);
   }
+}
+ 
+static void chaseAStepwiseSingle(uint32_t c, bool erase) {
+  lastPixelA = (lastPixelA + 1) % (stripB.numPixels() + 4);
+  stripA.setPixelColor(lastPixelA  , c); // Draw new pixel
+  if (erase) stripA.setPixelColor(lastPixelA-4, 0); // Erase pixel a few steps back
+  stripA.show();
+}
+ 
+static void chaseBStepwiseSingle(uint32_t c, bool erase) {
+  lastPixelB = (lastPixelB + 1) % (stripB.numPixels() + 4);
+  stripB.setPixelColor(lastPixelB  , c); // Draw new pixel
+  if (erase) stripB.setPixelColor(lastPixelB-4, 0); // Erase pixel a few steps back
+  stripB.show();
 }
  
 static void onA(uint32_t c) {
