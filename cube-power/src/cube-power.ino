@@ -10,6 +10,46 @@ SYSTEM_MODE(MANUAL);
 #define CHARGING_PIN D7
 #define CHARGED_PIN D6
 
+int notes[] = 
+{0,
+/* C,  C#,   D,  D#,   E,   F,  F#,   G,  G#,   A,  A#,   B */
+3817,3597,3401,3205,3030,2857,2703,2551,2404,2273,2146,2024,   // 3 (1-12)
+1908,1805,1701,1608,1515,1433,1351,1276,1205,1136,1073,1012,   // 4 (13-24)
+ 956, 903, 852, 804, 759, 716, 676, 638, 602, 568, 536, 506,   // 5 (25-37)
+ 478, 451, 426, 402, 379, 358, 338, 319, 301, 284, 268, 253,   // 6 (38-50)
+ 239, 226, 213, 201, 190, 179, 169, 159, 151, 142, 134, 127 }; // 7 (51-62)
+// setup() runs once, when the device is first turned on.
+
+#define NOTE_FSHARP3 2703
+#define NOTE_FSHARP4 1351
+#define NOTE_C5 956
+#define NOTE_CSHARP5 903
+#define NOTE_D5  852
+#define NOTE_DSHARP5 804
+#define NOTE_E5 759
+#define NOTE_F5 716
+#define NOTE_FSHARP5 676
+#define NOTE_G5  638
+#define NOTE_GSHARP5 602
+#define NOTE_A5 568
+#define NOTE_ASHARP5 536
+#define NOTE_B5 506
+#define NOTE_C6 478
+#define NOTE_G3  2551
+#define NOTE_G4  1276
+#define NOTE_C5  956
+#define RELEASE  20
+#define BPM      100
+
+int correctMelody[] = {NOTE_C5,NOTE_E5,NOTE_G5,NOTE_E5,NOTE_C5,NOTE_F5,NOTE_A5,NOTE_F5,NOTE_C5};
+int incorrectMelody[] = {NOTE_FSHARP3,NOTE_FSHARP4,NOTE_FSHARP5,0,NOTE_FSHARP3,NOTE_FSHARP4,NOTE_FSHARP5,0,};
+int letGoMelody[] = {NOTE_E5,NOTE_G5,NOTE_D5,NOTE_E5,NOTE_C5};
+int pickMeUpMelody[] = {NOTE_G5,NOTE_C5,NOTE_B5,NOTE_A5,NOTE_G5,NOTE_C6,NOTE_C5};
+
+int correctMelodyDurations[] = {4,4,4,4,4,4,4,4,2};
+int incorrectMelodyDurations[] = {4,4,2,4,4,4,2,4};
+int letMeGoMelodyDurations[] = {2,2,2,2,1};
+int pickMeUpMelodyDurations[] = {2,2,4,4,2,1,2};
 
 #define PIXEL_PIN_A D2
 #define PIXEL_COUNT_A 24
@@ -69,6 +109,7 @@ void setup() {
   pinMode(CHARGING_PIN, INPUT_PULLDOWN);
   pinMode(CHARGED_PIN, INPUT_PULLDOWN);
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(BEEPER_PIN, OUTPUT);
   // analogWrite(BUZZER_PIN, 255);
   // delay(1000);
   // tone(BUZZER_PIN, 440, 0);
@@ -215,8 +256,8 @@ void loop() {
 
 static void handleDoneStates() {
   bool done
-    = changeCounterA > PIXEL_COUNT_A
-    && changeCounterB > PIXEL_COUNT_B
+    = changeCounterA > PIXEL_COUNT_A+4
+    && changeCounterB > PIXEL_COUNT_B+4
     && !(redA == 0 && greenA == 0 && blueA == 0)
     && redA == redB
     && greenA == greenB
@@ -252,29 +293,37 @@ static void chaseBoth() {
 static void successJingle() {
   // onA(stripA.Color(0, 0, 0));
   // onB(stripB.Color(0, 0, 0));
-  tone(BEEPER_PIN, 261, 50);
-  delay(100);
+  //tone(BEEPER_PIN, 261, 50);
+  //delay(100);
   // onA(stripA.Color(255, 255, 255));
   // onB(stripB.Color(255, 255, 255));
-  tone(BEEPER_PIN, 440, 150);
+  //tone(BEEPER_PIN, 440, 150);
   // onA(stripA.Color(0, 0, 0));
   // onB(stripB.Color(0, 0, 0));
+  correctCombo();
+  tone(BUZZER_PIN, 440, 150);
 }
 
 static void chargingJingle() {
-  tone(BEEPER_PIN, 261, 1000);
+ // tone(BEEPER_PIN, 261, 1000);
+  letMeGo();
 }
 
 static void pickedUpJingle() {
-  tone(BEEPER_PIN, 220, 1000);
+//  tone(BEEPER_PIN, 220, 1000);
+  pickMeUp();
+
 }
 
 static void handsOffJingle() {
-  tone(BEEPER_PIN, 261, 50);
-    delay(100);
-  tone(BEEPER_PIN, 440, 50);
-    delay(100);
-  tone(BEEPER_PIN, 440, 50);
+  // tone(BEEPER_PIN, 261, 50);
+  //   delay(100);
+  // tone(BEEPER_PIN, 440, 50);
+  //   delay(100);
+  // tone(BEEPER_PIN, 440, 50);
+  incorrectCombo();
+  tone(BUZZER_PIN, 440, 150);
+
 }
 
 
@@ -316,6 +365,52 @@ static void checkPower() {
   }
 
   wasCharging = isCharging;
+}
+
+void correctCombo (){
+ 
+ for (int thisNote = 0; thisNote < (sizeof(correctMelody)/sizeof(int)); thisNote++) {
+
+  int noteDuration = 60*1000/BPM/correctMelodyDurations[thisNote];
+    tone(BEEPER_PIN, (correctMelody[thisNote]!=0)?(500000/correctMelody[thisNote]):0,noteDuration-RELEASE);
+    delay(noteDuration);
+  }
+  
+  
+}
+
+void incorrectCombo () {
+
+ for (int thisNote = 0; thisNote < (sizeof(incorrectMelody)/sizeof(int)); thisNote++) {
+
+  int noteDuration = 60*1000/BPM/incorrectMelodyDurations[thisNote];
+    tone(BEEPER_PIN, (incorrectMelody[thisNote]!=0)?(500000/incorrectMelody[thisNote]):0,noteDuration-RELEASE);
+    delay(noteDuration);
+  }
+  
+
+}
+
+void letMeGo(){
+
+ for (int thisNote = 0; thisNote < (sizeof(letGoMelody)/sizeof(int)); thisNote++) {
+
+  int noteDuration = 60*1000/BPM/letMeGoMelodyDurations[thisNote];
+    tone(BEEPER_PIN, (letGoMelody[thisNote]!=0)?(500000/letGoMelody[thisNote]):0,noteDuration-RELEASE);
+    delay(noteDuration);
+  }
+
+}
+
+void pickMeUp(){
+
+ for (int thisNote = 0; thisNote < (sizeof(pickMeUpMelody)/sizeof(int)); thisNote++) {
+
+  int noteDuration = 60*1000/BPM/pickMeUpMelodyDurations[thisNote];
+    tone(BEEPER_PIN, (pickMeUpMelody[thisNote]!=0)?(500000/pickMeUpMelody[thisNote]):0,noteDuration-RELEASE);
+    delay(noteDuration);
+  }
+
 }
 
 // static void chaseA(uint32_t c) {
