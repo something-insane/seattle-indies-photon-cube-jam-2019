@@ -15,6 +15,7 @@ void nextLevel();
 void setCornerToColor(int corner, uint32_t color);
 void setAllCornerColors();
 void clearAllCornerColors();
+void turnOffEveryLight();
 void changeGameState(int newState);
 void initCurrentLevel();
 void initCube();
@@ -148,7 +149,7 @@ SYSTEM_MODE(MANUAL);
 #define CORNER_EIGHT_LEFT_PIXEL     22
 #define CORNER_EIGHT_RIGHT_PIXEL    23
 
-#define SOME_DELAY_NUMBER          4000
+#define SOME_DELAY_NUMBER          5000
 
 /**
  * NeoPixels
@@ -224,7 +225,18 @@ int delayBetweenColors;
 int rndDelayRange;
 
 // pattern to display to user per level each item representing a panel to light up
-int pattern[10];
+int pattern[10] = {
+  COLOR_BLUE,
+  COLOR_YELLOW,
+  COLOR_RED,
+  COLOR_GREEN,
+  COLOR_RED,
+  COLOR_BLUE,
+  COLOR_YELLOW,
+  COLOR_RED,
+  COLOR_YELLOW,
+  COLOR_GREEN,
+};
 
 // represents which element in the pattern[] we are on and want to display next
 int patternCount;
@@ -305,7 +317,14 @@ void clearAllCornerColors() {
   stripCorners.show();
 }
 
+void turnOffEveryLight() {
+  lightAllPanelsWithColor(COLOR_OFF);
+  clearAllCornerColors();
+}
+
 void changeGameState(int newState) {
+  turnOffEveryLight();
+  delay(500);
   // here we can do some cleanup / setup depending on the state we are about to enter
   switch (newState) {
     case STATE_LOADING:
@@ -313,7 +332,7 @@ void changeGameState(int newState) {
       clearAllCornerColors();
 
       // here we just light up all cube panels blue for "loading"
-      lightAllPanelsWithColor(strip.Color(0, 0, 255));
+      lightAllPanelsWithColor(COLOR_TEAL);
       // resetTheGlowyValues();
 
       break;
@@ -323,6 +342,7 @@ void changeGameState(int newState) {
 
       break;
     case STATE_GET_USER_INPUT:
+      numberOfGuesses = 0;
       didGuessThisRound = false;
 
       break;
@@ -356,14 +376,14 @@ void initCurrentLevel() {
 
   // int panels[] = { PANEL_ONE, PANEL_TWO, PANEL_THREE, PANEL_FOUR, PANEL_FIVE, PANEL_SIX };
 
-  size_t sizer = sizeof(colorChoices) / sizeof(uint32_t);
-  int counts = static_cast<int>(sizer);
+  // size_t sizer = sizeof(colorChoices) / sizeof(uint32_t);
+  // int counts = static_cast<int>(sizer);
 
-  for (int i = 0; i < level; i += 1) {
-    int rndIndex = rand() % static_cast<int>(counts);
+  // for (int i = 0; i < level; i += 1) {
+  //   int rndIndex = rand() % static_cast<int>(counts);
 
-    pattern[i] = colorChoices[rndIndex];
-  }
+  //   pattern[i] = colorChoices[rndIndex];
+  // }
 
   currentCorrectPin = pattern[0];
 }
@@ -501,16 +521,18 @@ void neoPixelLoop() {
     case STATE_LOADING:
       // do the fun loading light pattern?
       if (currentStateCounter <= SOME_DELAY_NUMBER / 2) {
-        lightAllPanelsWithColor(COLOR_BLUE);
+        lightAllPanelsWithColor(COLOR_TEAL);
       }
 
       if (currentStateCounter > SOME_DELAY_NUMBER / 2) {
         lightAllPanelsWithColor(COLOR_OFF);
 
         loadingCount += 1;
+      }
 
+      if (currentStateCounter >= SOME_DELAY_NUMBER) {
         if (loadingCount >= level) {
-          changeGameState(STATE_GET_USER_INPUT);
+          changeGameState(STATE_SHOW_PATTERN);
         }
       }
 
@@ -542,9 +564,9 @@ void neoPixelLoop() {
       break;
     case STATE_GET_USER_INPUT:
       // give feedback when a corner is pressed
-      if (didGuessThisRound == true) {
-        // TODO: light up the corner that was touched?
-      }
+      // if (didGuessThisRound == true) {
+      //   // TODO: light up the corner that was touched?
+      // }
 
       break;
     case STATE_VICTORY:
@@ -567,11 +589,16 @@ void neoPixelLoop() {
 }
 
 void handleTouchedPin(int pinNumber) {
-  didGuessThisRound = true;
+  // didGuessThisRound = true;
 
-  // TODO: Remove always assuming correct sensor/corner was touched
-  changeGameState(STATE_VICTORY);
-  return;
+  numberOfGuesses += 1;
+
+  if (numberOfGuesses >= level) {
+    // TODO: Remove always assuming correct sensor/corner was touched
+    changeGameState(STATE_VICTORY);
+
+    return;
+  }
 
   // check if corrent Pin was guessed
   // if (pinNumber == currentCorrectPin) {
@@ -684,9 +711,9 @@ void loop() {
     case STATE_LOADING:
       // incrementTheGlowyValues();
 
-      if (currentStateCounter > SOME_DELAY_NUMBER) {
-        changeGameState(STATE_SHOW_PATTERN);
-      }
+      // if (currentStateCounter > SOME_DELAY_NUMBER) {
+      //   changeGameState(STATE_SHOW_PATTERN);
+      // }
 
       break;
     case STATE_SHOW_PATTERN:
