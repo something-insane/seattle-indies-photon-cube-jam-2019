@@ -2,8 +2,8 @@
 #include "Adafruit_MPR121.h"
 
 
-#define BEEPER_PIN TX
-#define BUZZER_PIN WKP
+#define BEEPER_PIN A5
+#define BUZZER_PIN A4
 
 SYSTEM_MODE(MANUAL);
 
@@ -24,6 +24,12 @@ Adafruit_NeoPixel stripA(PIXEL_COUNT_A, PIXEL_PIN_A, PIXEL_TYPE_A);
 Adafruit_NeoPixel stripB(PIXEL_COUNT_B, PIXEL_PIN_B, PIXEL_TYPE_B);
 
 Adafruit_MPR121 cap = Adafruit_MPR121();
+
+uint16_t lastPixelA = 0;
+uint16_t lastPixelB = 0;
+
+uint16_t changeCounterA = 0;
+uint16_t changeCounterB = 0;
 
 // Keeps track of the last pins touched
 // so we know when buttons are 'released'
@@ -62,8 +68,36 @@ void setup() {
 
   pinMode(CHARGING_PIN, INPUT_PULLDOWN);
   pinMode(CHARGED_PIN, INPUT_PULLDOWN);
-  pinMode(BEEPER_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  // analogWrite(BUZZER_PIN, 255);
+  // delay(1000);
+  // tone(BUZZER_PIN, 440, 0);
 }
+
+int redA = 0;
+int greenA = 0;
+int blueA = 0;
+int redB = 0;
+int greenB = 0;
+int blueB = 0;
+
+int redALast = 0;
+int greenALast = 0;
+int blueALast = 0;
+int redBLast = 0;
+int greenBLast = 0;
+int blueBLast = 0;
+
+int redTargetA = 255;
+int greenTargetA = 255;
+int blueTargetA = 255;
+
+int redTargetB = 255;
+int greenTargetB = 255;
+int blueTargetB = 255;
+
+bool wasDone = false;
+bool waitingForRelease = false;
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
@@ -71,89 +105,176 @@ void loop() {
   // Particle.process();
   // #endif
   checkPower();
+  // tone(BEEPER_PIN, 440, 0);
+  bool anyTouched = false;
 
   // the actual game
   currtouched = cap.touched();
-  int redA = 0;
-  int greenA = 0;
-  int blueA = 0;
+  redA = greenA = blueA = 0;
+  redB = greenB = blueB = 0;
   if (currtouched & _BV(0)) {
-    redA = 255;
+    redA += 255;
+    anyTouched = true;
   }
   
   if (currtouched & _BV(1)) {
-    greenA = 255;
+    greenA += 255;
+    anyTouched = true;
   }
 
   if (currtouched & _BV(2)) {
-    blueA = 255;
+    blueA += 255;
+    anyTouched = true;
   }
 
   if (currtouched & _BV(3)) {
-    redA = greenA = blueA = 255;
+    redA -= 128;
+    blueA -= 128;
+    greenA -= 128;
+    anyTouched = true;
   }
 
-  int redB = 0;
-  int greenB = 0;
-  int blueB = 0;
   if (currtouched & _BV(6)) {
-    redB = 255;
+    redB += 255;
+    anyTouched = true;
   }
   
   if (currtouched & _BV(7)) {
-    greenB = 255;
+    greenB += 255;
+    anyTouched = true;
   }
 
   if (currtouched & _BV(8)) {
-    blueB = 255;
+    blueB += 255;
+    anyTouched = true;
   }
 
   if (currtouched & _BV(9)) {
-    redB = greenB = blueB = 255;
+    redB -= 128;
+    blueB -= 128;
+    greenB -= 128;
+    anyTouched = true;
   }
 
-  bool setA =
-    (currtouched & 0b111111)
-    == (lasttouched & 0b111111)
-    || !(currtouched & 0b111111);
+  bool aChanged =
+    redA != redALast
+    || greenA != greenALast
+    || blueA != blueALast;
 
-  if (setA) {
-    onA(stripA.Color(redA, greenA, blueA));
+  bool bChanged =
+    redB != redBLast
+    || greenB != greenBLast
+    || blueB != blueBLast;
+
+  if (aChanged) {
+    changeCounterA = 0;
+    // onA(stripA.Color(0, 0, 0));
   }
 
-  bool setB =
-    (currtouched & 0b111111000000)
-    == (lasttouched & 0b111111000000)
-    || !(currtouched & 0b111111000000);
-
-  if (setB) {
-    onB(stripB.Color(redB, greenB, blueB));
+  if (bChanged){
+    changeCounterB = 0;
+    // onB(stripB.Color(0, 0, 0));
   }
+  
+  chaseAStepwiseSingle(stripA.Color(redA, greenA, blueA), false);
 
-  if (!setA) {
-    chaseA(stripA.Color(redA, greenA, blueA));
-  }
+  chaseBStepwiseSingle(stripB.Color(redB, greenB, blueB), false);
+  changeCounterA++;
+  changeCounterB++;
+  
+  lasttouched = currtouched;
 
-  if (!setB) {
-    chaseB(stripB.Color(redB, greenB, blueB));
+  redALast = redA;
+  greenALast = greenA;
+  blueALast = blueA;
+  redBLast = redB;
+  greenBLast = greenB;
+  blueBLast = blueB;
+
+  if (waitingForRelease) {
+    if (!anyTouched
+        && changeCounterA > PIXEL_COUNT_A
+        && changeCounterB > PIXEL_COUNT_B) {
+      waitingForRelease = false;
+      doneReleased();
+    } else {
+      doneWaitingOnRelease();
+      delay(25);
+      return;
+    }
+  } else {
+    handleDoneStates();
   }
 
 
   Serial.println("loop");
   // chaseBoth();
-  lasttouched = currtouched;
+
+  delay(25);
+}
+
+static void handleDoneStates() {
+  bool done
+    = changeCounterA > PIXEL_COUNT_A
+    && changeCounterB > PIXEL_COUNT_B
+    && !(redA == 0 && greenA == 0 && blueA == 0)
+    && redA == redB
+    && greenA == greenB
+    && blueA == blueB;
+
+  if (done && !wasDone) {
+    successJingle();
+    waitingForRelease = true;
+    wasDone = true;
+    return;
+  }
+}
+
+static void doneWaitingOnRelease() {
+  // changeCounterA = 0;
+  // changeCounterB = 0;
+}
+
+static void doneReleased() {
+  handsOffJingle();
+  wasDone = false;
+  waitingForRelease = false;
+  changeCounterA = 0;
+  changeCounterB = 0;
 }
 
 static void chaseBoth() {
-  chaseA(stripA.Color(255, 0, 0)); // Red
-  chaseA(stripA.Color(0, 255, 0)); // Green
-  chaseA(stripA.Color(0, 0, 255)); // Blue
-  chaseA(stripA.Color(0, 0, 0)); // Off
+  chaseA(stripA.Color(255, 255, 255)); // Red
 
-  chaseB(stripB.Color(255, 0, 0)); // Red
-  chaseB(stripB.Color(0, 255, 0)); // Green
-  chaseB(stripB.Color(0, 0, 255)); // Blue
-  chaseB(stripB.Color(0, 0, 0)); // Off
+  chaseB(stripB.Color(255, 255, 255)); // Red
+}
+
+static void successJingle() {
+  // onA(stripA.Color(0, 0, 0));
+  // onB(stripB.Color(0, 0, 0));
+  tone(BEEPER_PIN, 261, 50);
+  delay(100);
+  // onA(stripA.Color(255, 255, 255));
+  // onB(stripB.Color(255, 255, 255));
+  tone(BEEPER_PIN, 440, 150);
+  // onA(stripA.Color(0, 0, 0));
+  // onB(stripB.Color(0, 0, 0));
+}
+
+static void chargingJingle() {
+  tone(BEEPER_PIN, 261, 1000);
+}
+
+static void pickedUpJingle() {
+  tone(BEEPER_PIN, 220, 1000);
+}
+
+static void handsOffJingle() {
+  tone(BEEPER_PIN, 261, 50);
+    delay(100);
+  tone(BEEPER_PIN, 440, 50);
+    delay(100);
+  tone(BEEPER_PIN, 440, 50);
 }
 
 
@@ -169,12 +290,14 @@ static void checkPower() {
 
   if (isCharging) {
     if (!wasCharging) {
-      tone(BEEPER_PIN, 261, 1000);
+      chargingJingle();
     }
 
     if (isCharged) {
       Serial.println("charged");
-      tone(BEEPER_PIN, 220, 1000);
+      tone(BEEPER_PIN, 220, 100);
+      delay(100);
+      tone(BEEPER_PIN, 220, 100);
     } else {
       Serial.println("charging");
     }
@@ -189,7 +312,7 @@ static void checkPower() {
     Serial.println("unplugged");
     stripA.setBrightness(255);
     stripB.setBrightness(255);
-    tone(BEEPER_PIN, 220, 1000);
+    pickedUpJingle();
   }
 
   wasCharging = isCharging;
@@ -227,6 +350,20 @@ static void chaseB(uint32_t c) {
       stripB.show();
       delay(25);
   }
+}
+ 
+static void chaseAStepwiseSingle(uint32_t c, bool erase) {
+  lastPixelA = (lastPixelA + 1) % (stripB.numPixels() + 4);
+  stripA.setPixelColor(lastPixelA  , c); // Draw new pixel
+  if (erase) stripA.setPixelColor(lastPixelA-4, 0); // Erase pixel a few steps back
+  stripA.show();
+}
+ 
+static void chaseBStepwiseSingle(uint32_t c, bool erase) {
+  lastPixelB = (lastPixelB + 1) % (stripB.numPixels() + 4);
+  stripB.setPixelColor(lastPixelB  , c); // Draw new pixel
+  if (erase) stripB.setPixelColor(lastPixelB-4, 0); // Erase pixel a few steps back
+  stripB.show();
 }
  
 static void onA(uint32_t c) {
