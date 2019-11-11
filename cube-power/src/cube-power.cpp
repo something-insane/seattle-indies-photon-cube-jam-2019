@@ -11,6 +11,9 @@
 void touchSetup();
 void setup();
 void loop();
+static void handleDoneStates();
+static void doneWaitingOnRelease();
+static void doneReleased();
 static void chaseBoth();
 static void checkPower();
 static void chaseA(uint32_t c);
@@ -20,8 +23,8 @@ static void chaseBStepwiseSingle(uint32_t c, bool erase);
 static void onA(uint32_t c);
 static void onB(uint32_t c);
 #line 5 "c:/Users/me/Dropbox/2019-games/particle/seattle-indies-photon-cube-jam-2019/cube-power/src/cube-power.ino"
-#define BEEPER_PIN TX
-#define BUZZER_PIN WKP
+#define BEEPER_PIN A5
+#define BUZZER_PIN A4
 
 SYSTEM_MODE(MANUAL);
 
@@ -87,9 +90,9 @@ void setup() {
   pinMode(CHARGING_PIN, INPUT_PULLDOWN);
   pinMode(CHARGED_PIN, INPUT_PULLDOWN);
   pinMode(BUZZER_PIN, OUTPUT);
-  analogWrite(BUZZER_PIN, 255);
-  delay(1000);
-  tone(BUZZER_PIN, 440, 0);
+  // analogWrite(BUZZER_PIN, 255);
+  // delay(1000);
+  // tone(BUZZER_PIN, 440, 0);
 }
 
 int redA = 0;
@@ -106,47 +109,72 @@ int redBLast = 0;
 int greenBLast = 0;
 int blueBLast = 0;
 
+int redTargetA = 255;
+int greenTargetA = 255;
+int blueTargetA = 255;
+
+int redTargetB = 255;
+int greenTargetB = 255;
+int blueTargetB = 255;
+
+bool wasDone = false;
+bool waitingForRelease = false;
+
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
   // #if defined(PARTICLE)
   // Particle.process();
   // #endif
   checkPower();
-  tone(BEEPER_PIN, 440, 0);
+  // tone(BEEPER_PIN, 440, 0);
+  bool anyTouched = false;
 
   // the actual game
   currtouched = cap.touched();
   redA = greenA = blueA = 0;
   redB = greenB = blueB = 0;
   if (currtouched & _BV(0)) {
-    redA = 255;
+    redA += 255;
+    anyTouched = true;
   }
   
   if (currtouched & _BV(1)) {
-    greenA = 255;
+    greenA += 255;
+    anyTouched = true;
   }
 
   if (currtouched & _BV(2)) {
-    blueA = 255;
+    blueA += 255;
+    anyTouched = true;
   }
 
   if (currtouched & _BV(3)) {
-    redA = greenA = blueA = 255;
+    redA -= 128;
+    blueA -= 128;
+    greenA -= 128;
+    anyTouched = true;
   }
+
   if (currtouched & _BV(6)) {
-    redB = 255;
+    redB += 255;
+    anyTouched = true;
   }
   
   if (currtouched & _BV(7)) {
-    greenB = 255;
+    greenB += 255;
+    anyTouched = true;
   }
 
   if (currtouched & _BV(8)) {
-    blueB = 255;
+    blueB += 255;
+    anyTouched = true;
   }
 
   if (currtouched & _BV(9)) {
-    redB = greenB = blueB = 255;
+    redB -= 128;
+    blueB -= 128;
+    greenB -= 128;
+    anyTouched = true;
   }
 
   bool aChanged =
@@ -172,10 +200,9 @@ void loop() {
   chaseAStepwiseSingle(stripA.Color(redA, greenA, blueA), false);
 
   chaseBStepwiseSingle(stripB.Color(redB, greenB, blueB), false);
-
-
-  Serial.println("loop");
-  // chaseBoth();
+  changeCounterA++;
+  changeCounterB++;
+  
   lasttouched = currtouched;
 
   redALast = redA;
@@ -185,19 +212,74 @@ void loop() {
   greenBLast = greenB;
   blueBLast = blueB;
 
+  if (waitingForRelease) {
+    if (!anyTouched
+        && changeCounterA > PIXEL_COUNT_A
+        && changeCounterB > PIXEL_COUNT_B) {
+      waitingForRelease = false;
+      doneReleased();
+    } else {
+      doneWaitingOnRelease();
+      delay(25);
+      return;
+    }
+  } else {
+    handleDoneStates();
+  }
+
+
+  Serial.println("loop");
+  // chaseBoth();
+
   delay(25);
 }
 
-static void chaseBoth() {
-  chaseA(stripA.Color(255, 0, 0)); // Red
-  chaseA(stripA.Color(0, 255, 0)); // Green
-  chaseA(stripA.Color(0, 0, 255)); // Blue
-  chaseA(stripA.Color(0, 0, 0)); // Off
+static void handleDoneStates() {
+  bool done
+    = changeCounterA > PIXEL_COUNT_A
+    && changeCounterB > PIXEL_COUNT_B
+    && !(redA == 0 && greenA == 0 && blueA == 0)
+    && redA == redB
+    && greenA == greenB
+    && blueA == blueB;
 
-  chaseB(stripB.Color(255, 0, 0)); // Red
-  chaseB(stripB.Color(0, 255, 0)); // Green
-  chaseB(stripB.Color(0, 0, 255)); // Blue
-  chaseB(stripB.Color(0, 0, 0)); // Off
+  if (done && !wasDone) {
+    // onA(stripA.Color(0, 0, 0));
+    // onB(stripB.Color(0, 0, 0));
+    tone(BEEPER_PIN, 261, 50);
+    delay(100);
+    // onA(stripA.Color(255, 255, 255));
+    // onB(stripB.Color(255, 255, 255));
+    tone(BEEPER_PIN, 440, 150);
+    // onA(stripA.Color(0, 0, 0));
+    // onB(stripB.Color(0, 0, 0));
+    waitingForRelease = true;
+    wasDone = true;
+    return;
+  }
+}
+
+static void doneWaitingOnRelease() {
+  // changeCounterA = 0;
+  // changeCounterB = 0;
+}
+
+static void doneReleased() {
+  tone(BEEPER_PIN, 261, 50);
+    delay(100);
+  tone(BEEPER_PIN, 440, 50);
+    delay(100);
+  tone(BEEPER_PIN, 440, 50);
+  wasDone = false;
+  waitingForRelease = false;
+  changeCounterA = 0;
+  changeCounterB = 0;
+}
+
+static void chaseBoth() {
+  chaseA(stripA.Color(255, 255, 255)); // Red
+
+  chaseB(stripB.Color(255, 255, 255)); // Red
 }
 
 
@@ -218,7 +300,9 @@ static void checkPower() {
 
     if (isCharged) {
       Serial.println("charged");
-      tone(BEEPER_PIN, 220, 1000);
+      tone(BEEPER_PIN, 220, 100);
+      delay(100);
+      tone(BEEPER_PIN, 220, 100);
     } else {
       Serial.println("charging");
     }
